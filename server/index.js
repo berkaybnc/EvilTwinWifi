@@ -8,7 +8,7 @@ const qrcodeTerminal = require('qrcode-terminal');
 const QRCode = require('qrcode');
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 8080;
 
 app.use(cors());
 app.use(bodyParser.json());
@@ -24,7 +24,16 @@ let connectionStatus = 'INITIALIZING'; // 'INITIALIZING', 'QR_REQUIRED', 'AUTHEN
 const client = new Client({
     authStrategy: new LocalAuth(),
     puppeteer: {
-        args: ['--no-sandbox'],
+        headless: true,
+        args: [
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            '--disable-dev-shm-usage',
+            '--disable-accelerated-2d-canvas',
+            '--no-first-run',
+            '--no-zygote',
+            '--disable-gpu'
+        ],
     }
 });
 
@@ -57,11 +66,6 @@ client.on('disconnected', () => {
     console.log('--- WHATSAPP DISCONNECTED ---');
 });
 
-client.initialize();
-
-// --- In-Memory Verification Codes ---
-const verificationCodes = new Map(); // phone -> { code: '123456', expires: timestamp }
-
 // Log directory
 const logDir = path.join(__dirname, 'logs');
 if (!fs.existsSync(logDir)) {
@@ -69,6 +73,22 @@ if (!fs.existsSync(logDir)) {
 }
 
 const logFile = path.join(logDir, 'captured_data.json');
+
+// --- Start Server BEFORE WhatsApp Init for Cloud Run health checks ---
+app.listen(PORT, '0.0.0.0', () => {
+    console.log(`Educational Backend Server is running on port ${PORT}`);
+});
+
+// Initialize WhatsApp
+try {
+    console.log('--- INITIALIZING WHATSAPP CLIENT ---');
+    client.initialize();
+} catch (err) {
+    console.error('WhatsApp Initialization Error:', err);
+}
+
+// --- In-Memory Verification Codes ---
+const verificationCodes = new Map(); // phone -> { code: '123456', expires: timestamp }
 
 // --- API Endpoints ---
 
@@ -194,8 +214,4 @@ app.get('/api/admin/status', (req, res) => {
 // match one above, send back React's index.html file.
 app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, '../client/dist/index.html'));
-});
-
-app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Educational Backend Server is running on port ${PORT}`);
 });

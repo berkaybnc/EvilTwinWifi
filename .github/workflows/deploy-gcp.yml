@@ -47,7 +47,7 @@ jobs:
             --region $REGION \
             --platform managed \
             --allow-unauthenticated \
-            --port 5000 \
+            --port 8080 \
             --memory 2Gi \
             --cpu 1 \
             --set-env-vars "NODE_ENV=production"

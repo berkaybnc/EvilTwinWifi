@@ -67,10 +67,10 @@ COPY --from=client-build /app/client/dist ./client/dist
 
 # Set environment variables
 ENV NODE_ENV=production
-ENV PORT=5000
+ENV PORT=8080
 
 # Expose the port
-EXPOSE 5000
+EXPOSE 8080
 
 # Start the application from the server directory
 WORKDIR /app/server
