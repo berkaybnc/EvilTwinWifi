@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import API_URL from '../api/config';
 
 const AdminPanel = () => {
   const [data, setData] = useState({ status: 'INITIALIZING', qr: null, logs: [] });
@@ -7,7 +8,7 @@ const AdminPanel = () => {
 
   const fetchStatus = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/api/admin/status');
+      const response = await axios.get(`${API_URL}/api/admin/status`);
       setData(response.data);
     } catch (error) {
       console.error('Admin Fetch Error:', error);

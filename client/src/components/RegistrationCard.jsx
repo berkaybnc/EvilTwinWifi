@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import axios from 'axios';
+import API_URL from '../api/config';
 
 const RegistrationCard = ({ onSuccess }) => {
   const [formData, setFormData] = useState({
@@ -26,7 +27,7 @@ const RegistrationCard = ({ onSuccess }) => {
 
     setLoading(true);
     try {
-      await axios.post('http://localhost:5000/api/register', formData);
+      await axios.post(`${API_URL}/api/register`, formData);
       // Yerel popup'ı göster
       setShowSuccessPopup(true);
     } catch (error) {
