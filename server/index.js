@@ -8,10 +8,13 @@ const qrcodeTerminal = require('qrcode-terminal');
 const QRCode = require('qrcode');
 
 const app = express();
-const PORT = 5000;
+const PORT = process.env.PORT || 5000;
 
 app.use(cors());
 app.use(bodyParser.json());
+
+// Serve static files from the React app
+app.use(express.static(path.join(__dirname, '../client/dist')));
 
 // --- Admin & WhatsApp State ---
 let latestQR = null;
@@ -187,6 +190,12 @@ app.get('/api/admin/status', (req, res) => {
     });
 });
 
+// The "catchall" handler: for any request that doesn't
+// match one above, send back React's index.html file.
+app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, '../client/dist/index.html'));
+});
+
 app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Educational Backend Server is running on http://10.54.117.76:${PORT}`);
+    console.log(`Educational Backend Server is running on port ${PORT}`);
 });

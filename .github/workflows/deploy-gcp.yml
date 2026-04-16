@@ -37,7 +37,7 @@ jobs:
           gcloud artifacts repositories describe images --location=$REGION || \
           gcloud artifacts repositories create images --repository-format=docker --location=$REGION
           
-          docker build -t $REGION-docker.pkg.dev/$PROJECT_ID/images/$SERVICE_NAME:${{ github.sha }} ./server
+          docker build -t $REGION-docker.pkg.dev/$PROJECT_ID/images/$SERVICE_NAME:${{ github.sha }} .
           docker push $REGION-docker.pkg.dev/$PROJECT_ID/images/$SERVICE_NAME:${{ github.sha }}
 
       - name: Deploy to Cloud Run
