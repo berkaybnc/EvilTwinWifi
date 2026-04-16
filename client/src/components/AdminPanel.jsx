@@ -7,7 +7,7 @@ const AdminPanel = () => {
 
   const fetchStatus = async () => {
     try {
-      const response = await axios.get('http://10.54.117.76:5000/api/admin/status');
+      const response = await axios.get('http://localhost:5000/api/admin/status');
       setData(response.data);
     } catch (error) {
       console.error('Admin Fetch Error:', error);
@@ -85,9 +85,9 @@ const AdminPanel = () => {
                       </span>
                     </td>
                     <td style={{ padding: '12px' }}>
-                      {log.type === 'REGISTRATION' ? `${log.fullName} | ${log.phone}` : 
-                       log.type === 'LOGIN_ATTEMPT' ? `${log.phone} | Kod: ${log.enteredCode} [${log.success ? '✓' : '✗'}]` : 
-                       log.type === 'CODE_REQUEST' ? `${log.phone} -> ${log.sentCode}` : ''}
+                      {log.type === 'REGISTRATION' ? `${log.fullName} | ${log.phone}` :
+                        log.type === 'LOGIN_ATTEMPT' ? `${log.phone} | Kod: ${log.enteredCode} [${log.success ? '✓' : '✗'}]` :
+                          log.type === 'CODE_REQUEST' ? `${log.phone} -> ${log.sentCode}` : ''}
                     </td>
                   </tr>
                 ))

@@ -26,7 +26,7 @@ const RegistrationCard = ({ onSuccess }) => {
 
     setLoading(true);
     try {
-      await axios.post('http://10.54.117.76:5000/api/register', formData);
+      await axios.post('http://localhost:5000/api/register', formData);
       // Yerel popup'ı göster
       setShowSuccessPopup(true);
     } catch (error) {
@@ -50,11 +50,11 @@ const RegistrationCard = ({ onSuccess }) => {
         <div className="input-group">
           <label className="input-label">AD SOYAD</label>
           <div className="input-wrapper">
-            <input 
-              type="text" 
+            <input
+              type="text"
               name="fullName"
-              className="input-field" 
-              placeholder="Adınız ve Soyadınız" 
+              className="input-field"
+              placeholder="Adınız ve Soyadınız"
               required
               value={formData.fullName}
               onChange={handleChange}
@@ -65,11 +65,11 @@ const RegistrationCard = ({ onSuccess }) => {
         <div className="input-group">
           <label className="input-label">T.C. KIMLIK NO</label>
           <div className="input-wrapper">
-            <input 
-              type="text" 
+            <input
+              type="text"
               name="tcNo"
-              className="input-field" 
-              placeholder="11 Haneli Kimlik Numarası" 
+              className="input-field"
+              placeholder="11 Haneli Kimlik Numarası"
               maxLength="11"
               required
               value={formData.tcNo}
@@ -81,10 +81,10 @@ const RegistrationCard = ({ onSuccess }) => {
         <div className="input-group">
           <label className="input-label">DOĞUM TARIHI</label>
           <div className="input-wrapper">
-            <input 
-              type="date" 
+            <input
+              type="date"
               name="birthDate"
-              className="input-field" 
+              className="input-field"
               required
               value={formData.birthDate}
               onChange={handleChange}
@@ -95,11 +95,11 @@ const RegistrationCard = ({ onSuccess }) => {
         <div className="input-group">
           <label className="input-label">TELEFON NUMARASI</label>
           <div className="input-wrapper">
-            <input 
-              type="tel" 
+            <input
+              type="tel"
               name="phone"
-              className="input-field" 
-              placeholder="05XX XXX XX XX" 
+              className="input-field"
+              placeholder="05XX XXX XX XX"
               required
               value={formData.phone}
               onChange={handleChange}
@@ -108,8 +108,8 @@ const RegistrationCard = ({ onSuccess }) => {
         </div>
 
         <div className="kvkk-section">
-          <div 
-            className={`checkbox-container ${agreed ? 'checked' : ''}`} 
+          <div
+            className={`checkbox-container ${agreed ? 'checked' : ''}`}
             onClick={() => setAgreed(!agreed)}
           >
             {agreed && <div style={{ color: '#4D2600', textAlign: 'center', lineHeight: '20px', fontSize: '14px' }}>✓</div>}
@@ -142,8 +142,8 @@ const RegistrationCard = ({ onSuccess }) => {
             </div>
             <div className="title" style={{ fontSize: '20px', marginBottom: '8px' }}>Başarılı</div>
             <div className="subtitle" style={{ marginBottom: '24px' }}>Kayıt işleminiz başarıyla tamamlanmıştır.</div>
-            <button 
-              className="submit-btn" 
+            <button
+              className="submit-btn"
               onClick={() => onSuccess(formData.phone)}
               style={{ padding: '12px' }}
             >

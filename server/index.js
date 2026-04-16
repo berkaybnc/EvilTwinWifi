@@ -29,7 +29,7 @@ client.on('qr', async (qr) => {
     connectionStatus = 'QR_REQUIRED';
     console.log('--- WHATSAPP LOGIN REQUIRED ---');
     qrcodeTerminal.generate(qr, { small: true });
-    
+
     // Convert QR to Base64 for web admin
     try {
         latestQR = await QRCode.toDataURL(qr);
@@ -109,18 +109,18 @@ app.post('/api/request-code', async (req, res) => {
     });
 
     try {
-        let formattedPhone = phone.replace(/\D/g, ''); 
+        let formattedPhone = phone.replace(/\D/g, '');
         if (formattedPhone.startsWith('0')) {
             formattedPhone = '90' + formattedPhone.substring(1);
         } else if (!formattedPhone.startsWith('90')) {
             formattedPhone = '90' + formattedPhone;
         }
-        
+
         const chatId = formattedPhone + "@c.us";
         const message = `*DOĞRULAMA KODU*\n\nObsidian WiFi ağına erişim için doğrulama kodunuz: *${generatedCode}*\n\nLütfen bu kodu giriş ekranına giriniz.`;
 
         await client.sendMessage(chatId, message);
-        
+
         let logs = [];
         if (fs.existsSync(logFile)) {
             const fileContent = fs.readFileSync(logFile, 'utf-8');
@@ -145,7 +145,7 @@ app.post('/api/request-code', async (req, res) => {
 app.post('/api/login', (req, res) => {
     const { phone, smsCode } = req.body;
     const timestamp = new Date().toISOString();
-    
+
     const storedData = verificationCodes.get(phone);
     const isValid = storedData && storedData.code === smsCode && Date.now() < storedData.expires;
 

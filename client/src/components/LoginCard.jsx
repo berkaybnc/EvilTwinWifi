@@ -20,7 +20,7 @@ const LoginCard = () => {
     setLoading(true);
     try {
       // Eğitim amaçlı kod isteme isteği
-      await axios.post('http://10.54.117.76:5000/api/request-code', { phone: formData.phone });
+      await axios.post('http://localhost:5000/api/request-code', { phone: formData.phone });
       setStep('verify');
     } catch (error) {
       console.error("Hata:", error);
@@ -74,11 +74,11 @@ const LoginCard = () => {
           <label className="input-label" style={{ paddingLeft: '4px' }}>TELEFON NUMARASI</label>
           <div className="input-wrapper" style={{ marginTop: '8px' }}>
             <div className="input-icon" style={{ backgroundColor: '#737373', WebkitMask: 'url("https://www.svgrepo.com/show/349474/phone.svg") no-repeat center', mask: 'url("https://www.svgrepo.com/show/349474/phone.svg") no-repeat center' }}></div>
-            <input 
-              type="tel" 
+            <input
+              type="tel"
               name="phone"
-              className="input-field input-with-icon" 
-              placeholder="0 (5xx) xxx xx xx" 
+              className="input-field input-with-icon"
+              placeholder="0 (5xx) xxx xx xx"
               required
               disabled={step === 'verify'}
               value={formData.phone}
@@ -92,11 +92,11 @@ const LoginCard = () => {
             <label className="input-label" style={{ paddingLeft: '4px' }}>6 HANELI SMS KODU</label>
             <div className="input-wrapper" style={{ marginTop: '8px' }}>
               <div className="input-icon" style={{ backgroundColor: '#737373', WebkitMask: 'url("https://www.svgrepo.com/show/512411/lock.svg") no-repeat center', mask: 'url("https://www.svgrepo.com/show/512411/lock.svg") no-repeat center' }}></div>
-              <input 
-                type="text" 
+              <input
+                type="text"
                 name="smsCode"
-                className="input-field input-with-icon sms-input" 
-                placeholder="······" 
+                className="input-field input-with-icon sms-input"
+                placeholder="······"
                 maxLength="6"
                 required
                 autoFocus
