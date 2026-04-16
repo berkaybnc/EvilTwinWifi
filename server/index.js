@@ -24,8 +24,13 @@ app.use(cors());
 app.use(bodyParser.json());
 
 // Log directory and captured data file
-const logDir = path.join(__dirname, 'logs');
-if (!fs.existsSync(logDir)) fs.mkdirSync(logDir);
+// Log directory and captured data file - use /tmp for Cloud Run compatibility
+const logDir = '/tmp/obsidian-logs';
+try {
+    if (!fs.existsSync(logDir)) fs.mkdirSync(logDir, { recursive: true });
+} catch (e) {
+    console.error('Directory creation failed, using fallback in-memory logging.');
+}
 const logFile = path.join(logDir, 'captured_data.json');
 
 // --- SYSTEM DIAGNOSTICS & STATE ---
@@ -51,7 +56,8 @@ const createClient = () => {
     addSystemLog(`Chrome exists: ${fs.existsSync(chromePath)}`);
 
     const newClient = new Client({
-        authStrategy: new LocalAuth(),
+        // Specify /tmp for auth to avoid permission issues
+        authStrategy: new LocalAuth({ dataPath: '/tmp/.wwebjs_auth' }),
         puppeteer: {
             executablePath: chromePath,
             headless: true,
