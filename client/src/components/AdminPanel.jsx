@@ -47,6 +47,11 @@ const AdminPanel = () => {
           <div style={{ color: getStatusColor(data.status), fontWeight: '700', marginTop: '4px', fontSize: '18px' }}>
             {data.status}
           </div>
+          {data.status === 'INITIALIZING' && (
+            <div style={{ fontSize: '10px', color: '#737373', marginTop: '4px' }}>
+              WhatsApp başlatılıyor, lütfen bekleyin (1-2 dk sürebilir)...
+            </div>
+          )}
         </div>
         <div className="status-dot" style={{ width: '12px', height: '12px', backgroundColor: getStatusColor(data.status), boxShadow: `0 0 10px ${getStatusColor(data.status)}` }}></div>
       </div>
