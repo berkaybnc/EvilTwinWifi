@@ -1,6 +1,6 @@
-// --- V7 DEFINITIVE BOOTSTRAP ---
-// THIS VERSION MINIMIZES STARTUP TIME TO ENSURE CLOUD RUN HEALTH CHECKS PASS
-console.log('--- SYSTEM: INITIALIZING V7 BOOT SEQUENCE ---');
+// --- V8 NUCLEAR BOOTSTRAP ---
+// First line: Speak directly to the OS stdout for immediate detection
+process.stdout.write('--- OS: BOOTING OBSIDIAN V8 ---\n');
 
 const express = require('express');
 const path = require('path');
@@ -9,10 +9,10 @@ const cors = require('cors');
 const app = express();
 const PORT = parseInt(process.env.PORT || '8080', 10);
 
-// Global State
+// Diagnostics state
+let systemLogs = [];
 let connectionStatus = 'BOOTING';
 let latestQR = null;
-let systemLogs = [];
 let client = null;
 
 const addSystemLog = (msg) => {
@@ -22,111 +22,102 @@ const addSystemLog = (msg) => {
     if (systemLogs.length > 100) systemLogs.shift();
 };
 
-addSystemLog('V7 Server starting up...');
-addSystemLog(`Target Port: ${PORT}`);
+addSystemLog('V8 Engine engaged.');
 
 app.use(cors());
 app.use(express.json());
 
-// 1. FORCED PORT BINDING (First priority)
-// We add a dedicated health check that requires ZERO dependencies
-app.get('/health', (req, res) => {
-    res.status(200).send('V7_HEALTHY_AND_READY');
-});
+// 1. FORCED HEALTH CHECK (Top priority)
+app.get('/health', (req, res) => res.status(200).send('V8_ALIVE'));
 
 app.get('/api/admin/status', (req, res) => {
     res.json({
         status: connectionStatus,
         qr: latestQR,
-        logs: [], // Victim logs can be added later
+        logs: [], // Victim logs can be linked later
         systemLogs: systemLogs
     });
 });
 
 app.post('/api/admin/restart', (req, res) => {
-    addSystemLog('Restart requested via API.');
-    startWhatsApp();
-    res.json({ status: 'success', message: 'Initialization triggered.' });
+    addSystemLog('Manual restart triggered.');
+    bootstrapWhatsApp();
+    res.json({ status: 'success' });
 });
 
-// Dynamic Loader
-async function startWhatsApp() {
-    addSystemLog('--- STARTING WHATSAPP DIAGNOSTICS ---');
+// Dynamic Bootstrap Logic
+async function bootstrapWhatsApp() {
+    addSystemLog('--- LOADER: Phase 1 (Dependencies) ---');
     try {
-        addSystemLog('Loading Heavy Dependencies...');
         const { Client, LocalAuth } = require('whatsapp-web.js');
         const QRCode = require('qrcode');
         const fs = require('fs');
         
-        addSystemLog('Dependencies Loaded. Checking Environment...');
+        addSystemLog('--- LOADER: Phase 2 (Environment) ---');
         const chromePath = process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/google-chrome-stable';
-        addSystemLog(`Chrome Bin: ${chromePath} (exists: ${fs.existsSync(chromePath)})`);
-
+        
         if (client) {
-            addSystemLog('Cleaning up old client...');
+            addSystemLog('Destroying existing client...');
             await client.destroy().catch(() => {});
         }
 
         connectionStatus = 'INITIALIZING';
-        addSystemLog('Creating WhatsApp Client...');
+        addSystemLog('Creating WhatsApp Instance...');
         
         client = new Client({
+            // Ensure we use /tmp for everything in Cloud Run
             authStrategy: new LocalAuth({ dataPath: '/tmp/.wwebjs_auth' }),
             puppeteer: {
                 executablePath: chromePath,
                 headless: true,
-                args: [
-                    '--no-sandbox', 
-                    '--disable-setuid-sandbox', 
-                    '--disable-dev-shm-usage',
-                    '--disable-gpu',
-                    '--no-zygote'
-                ]
+                args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--no-zygote']
             }
         });
 
         client.on('qr', async (qr) => {
             connectionStatus = 'QR_REQUIRED';
-            addSystemLog('Standard QR code generated.');
+            addSystemLog('New QR generated.');
             latestQR = await QRCode.toDataURL(qr);
         });
 
         client.on('ready', () => {
             connectionStatus = 'READY';
             latestQR = null;
-            addSystemLog('SUCCESS: WhatsApp Connection Established!');
+            addSystemLog('SUCCESS: WhatsApp Bridge Connected!');
         });
 
         client.on('disconnected', (reason) => {
+            addSystemLog(`Disconnected: ${reason}`);
             connectionStatus = 'DISCONNECTED';
-            addSystemLog(`WARNING: Disconnected because ${reason}`);
         });
 
-        addSystemLog('Calling client.initialize()...');
+        addSystemLog('Loader complete. Calling initialize...');
         await client.initialize();
 
     } catch (err) {
-        addSystemLog(`CRITICAL ERROR DURING INIT: ${err.message}`);
+        addSystemLog(`CRITICAL SYSTEM ERROR: ${err.message}`);
         connectionStatus = 'ERROR';
     }
 }
 
 // Serve Frontend
-app.use(express.static(path.join(__dirname, '../client/dist')));
+const distPath = path.join(__dirname, '../client/dist');
+app.use(express.static(distPath));
+
 app.get(['/admin', '/admin/*'], (req, res) => {
-    res.sendFile(path.join(__dirname, '../client/dist/index.html'));
+    res.sendFile(path.join(distPath, 'index.html'));
 });
 
 app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, '../client/dist/index.html'));
+    res.sendFile(path.join(distPath, 'index.html'));
 });
 
-// THE SURVIVAL BINDING
+// SURVIVAL LISTEN
 app.listen(PORT, '0.0.0.0', () => {
-    addSystemLog(`SYSTEM: Listening on port ${PORT}. Health check ready.`);
+    addSystemLog(`V8: Port ${PORT} bound successfully.`);
     connectionStatus = 'SERVER_UP';
     
-    // DELAYED HEAVY START: Allow 10s for Cloud Run to register health check success
-    addSystemLog('SYSTEM: Waiting 10s for environment stabilization...');
-    setTimeout(startWhatsApp, 10000);
+    // DELAYED AWAKENING (15s)
+    addSystemLog('Stabilization period (15s) starting...');
+    setTimeout(bootstrapWhatsApp, 15000);
 });
