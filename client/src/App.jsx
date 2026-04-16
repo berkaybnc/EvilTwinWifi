@@ -40,7 +40,7 @@ function App() {
             <div className="status-dot"></div>
             <div className="status-text" style={{ color: '#DDC1AE', fontSize: '10px' }}>GUEST-NETWORK</div>
           </div>
-          <div style={{ width: '24px', height: '17px', backgroundColor: '#F97316', WebkitMask: 'url("https://www.svgrepo.com/show/532381/wifi-signal-strong.svg") no-repeat center', mask: 'url("https://www.svgrepo.com/show/532381/wifi-signal-strong.svg") no-repeat center' }}></div>
+          <div style={{ width: '24px', height: '17px', backgroundColor: '#F97316', WebkitMask: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\'%3E%3Cpath d=\'M12 3C7.79 3 3.97 4.51 1 7l2 2.5C5.1 7.62 8.35 6.5 12 6.5s6.9 1.12 9 3L23 7c-2.97-2.49-6.79-4-11-4zm0 5c-3.06 0-5.81 1.09-8 2.87L6 13.5c1.71-1.35 3.86-2.13 6-2.13s4.29.78 6 2.13l2-2.63C17.81 9.09 15.06 8 12 8zm0 5c-1.9 0-3.64.67-5 1.77L12 21l11-14C20.36 5.67 18.64 5 16.74 5L12 13z\'/%3E%3C/svg%3E") no-repeat center', mask: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\'%3E%3Cpath d=\'M12 3C7.79 3 3.97 4.51 1 7l2 2.5C5.1 7.62 8.35 6.5 12 6.5s6.9 1.12 9 3L23 7c-2.97-2.49-6.79-4-11-4zm0 5c-3.06 0-5.81 1.09-8 2.87L6 13.5c1.71-1.35 3.86-2.13 6-2.13s4.29.78 6 2.13l2-2.63C17.81 9.09 15.06 8 12 8zm0 5c-1.9 0-3.64.67-5 1.77L12 21l11-14C20.36 5.67 18.64 5 16.74 5L12 13z\'/%3E%3C/svg%3E") no-repeat center' }}></div>
         </div>
       </header>
 
