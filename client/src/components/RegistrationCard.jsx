@@ -29,10 +29,12 @@ const RegistrationCard = ({ onSuccess }) => {
       await axios.post('http://localhost:5000/api/register', formData);
       
       // Kayıt başarılı popup mesajı
-      alert("Kayıt işlemi tamamlanmıştır.");
+      window.alert("Kayıt işlemi tamamlanmıştır.");
       
-      // Hemen giriş sayfasına yönlendir
-      onSuccess(formData.phone);
+      // Kısa bir gecikmeyle yönlendir (mesajın göründüğünden emin olmak için)
+      setTimeout(() => {
+        onSuccess(formData.phone);
+      }, 100);
     } catch (error) {
       console.error("Hata:", error);
       alert("Bir bağlantı hatası oluştu. Lütfen tekrar deneyin.");
