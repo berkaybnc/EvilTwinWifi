@@ -1,43 +1,58 @@
-import React from 'react';
+import React, { useState } from 'react';
 import RegistrationCard from './components/RegistrationCard';
+import LoginCard from './components/LoginCard';
 
 function App() {
+  const [view, setView] = useState('register'); // 'register' or 'login'
+
+  const handleRegisterSuccess = (phone) => {
+    setView('login');
+  };
+
   return (
     <div className="app-container">
       {/* Header */}
       <header className="header">
         <div className="logo-container">
-          <div className="logo-circle">
-            <div className="logo-inner"></div>
+          <div className="logo-circle" style={{ outline: '2px solid #F97316', border: 'none' }}>
+            <div className="logo-inner" style={{ width: '8px', height: '8px', backgroundColor: '#F97316', boxShadow: 'none' }}></div>
           </div>
-          <div className="logo-text">OBSIDIAN</div>
+          <div className="logo-text" style={{ fontSize: '20px', letterSpacing: '2px' }}>OBSIDIAN</div>
         </div>
-        <div className="status-badge">
-          <div className="status-dot"></div>
-          <div className="status-text">NETWORK SECURE</div>
+        <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+          <div className="status-badge" style={{ backgroundColor: '#1F1F1F', padding: '6px 12px' }}>
+            <div className="status-dot"></div>
+            <div className="status-text" style={{ color: '#DDC1AE', fontSize: '10px' }}>GUEST-NETWORK</div>
+          </div>
+          <div style={{ width: '24px', height: '17px', backgroundColor: '#F97316', WebkitMask: 'url("https://www.svgrepo.com/show/532381/wifi-signal-strong.svg") no-repeat center', mask: 'url("https://www.svgrepo.com/show/532381/wifi-signal-strong.svg") no-repeat center' }}></div>
         </div>
       </header>
 
       {/* Main Content */}
-      <main className="main-content">
+      <main className="main-content" style={{ paddingTop: '89px' }}>
         <div className="blur-orange"></div>
-        <div className="blur-blue"></div>
+        <div className="blur-blue" style={{ left: '150px', top: '293px', backgroundColor: 'rgba(133, 207, 255, 0.05)' }}></div>
         
-        <RegistrationCard />
+        {view === 'register' ? (
+          <RegistrationCard onSuccess={handleRegisterSuccess} />
+        ) : (
+          <LoginCard />
+        )}
 
-        {/* Security Info */}
-        <div className="security-badges">
-          <div className="badge-item">
-            <div className="badge-icon"></div>
-            <div className="badge-text">AES-256</div>
+        {/* Security and Support Info - Updated for Login Design */}
+        <div className="security-badges-row">
+          <div className="security-badge-item">
+            <div className="badge-icon-bg">
+              <div className="badge-icon-blue"></div>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              <div className="badge-title">GÜVENLI BAĞLANTI</div>
+              <div className="badge-subtitle">256-bit SSL şifreleme aktif</div>
+            </div>
           </div>
-          <div className="badge-item">
-            <div className="badge-icon" style={{ clipPath: 'polygon(0% 0%, 100% 0%, 100% 75%, 50% 100%, 0% 75%)' }}></div>
-            <div className="badge-text">HIGH SPEED</div>
-          </div>
-          <div className="badge-item">
-            <div className="badge-icon"></div>
-            <div className="badge-text">IDENTITY VERIFIED</div>
+          <div className="support-section">
+            <div className="support-title">DESTEK HATTI</div>
+            <div className="support-number">+90 850 000 00 00</div>
           </div>
         </div>
       </main>

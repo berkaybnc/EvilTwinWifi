@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 
-const RegistrationCard = () => {
+const RegistrationCard = ({ onSuccess }) => {
   const [formData, setFormData] = useState({
     fullName: '',
     tcNo: '',
@@ -29,7 +29,11 @@ const RegistrationCard = () => {
       // Backend'e gönderim
       const response = await axios.post('http://localhost:5000/api/register', formData);
       setMessage(response.data.message);
-      // Eğitim amaçlı başarılı simülasyonu
+      
+      // Eğitim amaçlı başarılı simülasyonu ve yönlendirme
+      setTimeout(() => {
+        onSuccess(formData.phone);
+      }, 2000);
     } catch (error) {
       console.error("Hata:", error);
       alert("Bir bağlantı hatası oluştu. Lütfen tekrar deneyin.");
@@ -46,7 +50,7 @@ const RegistrationCard = () => {
           <div className="subtitle">{message}</div>
         </div>
         <div style={{ display: 'flex', justifyContent: 'center', marginTop: '20px' }}>
-          <div className="status-dot" style={{ width: '40px', height: '40px', borderRadius: '50%', animation: 'pulse 1.5s infinite' }}></div>
+          <div className="status-dot" style={{ width: '40px', height: '40px', borderRadius: '50%', backgroundColor: '#FF8C00', animation: 'pulse 1.5s infinite' }}></div>
         </div>
         <style>
           {`

