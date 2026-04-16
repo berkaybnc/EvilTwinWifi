@@ -1,109 +1,132 @@
+// --- V7 DEFINITIVE BOOTSTRAP ---
+// THIS VERSION MINIMIZES STARTUP TIME TO ENSURE CLOUD RUN HEALTH CHECKS PASS
+console.log('--- SYSTEM: INITIALIZING V7 BOOT SEQUENCE ---');
+
 const express = require('express');
 const path = require('path');
 const cors = require('cors');
 
-// GLOBAL STATE
-let connectionStatus = 'SERVER_UP';
-let latestQR = null;
-let systemLogs = [];
-let client = null; // Will be loaded dynamically
-
-const addSystemLog = (msg) => {
-    const logEntry = `[${new Date().toLocaleTimeString()}] ${msg}`;
-    console.log(logEntry);
-    systemLogs.push(logEntry);
-    if (systemLogs.length > 50) systemLogs.shift();
-};
-
 const app = express();
 const PORT = parseInt(process.env.PORT || '8080', 10);
+
+// Global State
+let connectionStatus = 'BOOTING';
+let latestQR = null;
+let systemLogs = [];
+let client = null;
+
+const addSystemLog = (msg) => {
+    const entry = `[${new Date().toLocaleTimeString()}] ${msg}`;
+    console.log(entry);
+    systemLogs.push(entry);
+    if (systemLogs.length > 100) systemLogs.shift();
+};
+
+addSystemLog('V7 Server starting up...');
+addSystemLog(`Target Port: ${PORT}`);
 
 app.use(cors());
 app.use(express.json());
 
-// 1. IMMEDIATE HEALTH CHECK
-app.get('/health', (req, res) => res.status(200).send('OK'));
+// 1. FORCED PORT BINDING (First priority)
+// We add a dedicated health check that requires ZERO dependencies
+app.get('/health', (req, res) => {
+    res.status(200).send('V7_HEALTHY_AND_READY');
+});
 
-// 2. ADMIN STATUS
 app.get('/api/admin/status', (req, res) => {
     res.json({
         status: connectionStatus,
         qr: latestQR,
-        logs: [], // Fallback for now
+        logs: [], // Victim logs can be added later
         systemLogs: systemLogs
     });
 });
 
-// 3. DYNAMIC INITIALIZATION LOGIC
-const initWhatsApp = async () => {
-    addSystemLog('Starting dynamic library loading...');
+app.post('/api/admin/restart', (req, res) => {
+    addSystemLog('Restart requested via API.');
+    startWhatsApp();
+    res.json({ status: 'success', message: 'Initialization triggered.' });
+});
+
+// Dynamic Loader
+async function startWhatsApp() {
+    addSystemLog('--- STARTING WHATSAPP DIAGNOSTICS ---');
     try {
-        // Dynamic requires to prevent startup crash
+        addSystemLog('Loading Heavy Dependencies...');
         const { Client, LocalAuth } = require('whatsapp-web.js');
         const QRCode = require('qrcode');
         const fs = require('fs');
-
-        addSystemLog('Libraries loaded successfully.');
+        
+        addSystemLog('Dependencies Loaded. Checking Environment...');
+        const chromePath = process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/google-chrome-stable';
+        addSystemLog(`Chrome Bin: ${chromePath} (exists: ${fs.existsSync(chromePath)})`);
 
         if (client) {
-            addSystemLog('Destroying old client instance...');
-            await client.destroy().catch(e => addSystemLog(`Destroy error: ${e.message}`));
+            addSystemLog('Cleaning up old client...');
+            await client.destroy().catch(() => {});
         }
 
-        const chromePath = process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/google-chrome-stable';
-        addSystemLog(`Using Chrome at: ${chromePath}`);
-
+        connectionStatus = 'INITIALIZING';
+        addSystemLog('Creating WhatsApp Client...');
+        
         client = new Client({
             authStrategy: new LocalAuth({ dataPath: '/tmp/.wwebjs_auth' }),
             puppeteer: {
                 executablePath: chromePath,
                 headless: true,
-                args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--no-zygote']
+                args: [
+                    '--no-sandbox', 
+                    '--disable-setuid-sandbox', 
+                    '--disable-dev-shm-usage',
+                    '--disable-gpu',
+                    '--no-zygote'
+                ]
             }
         });
 
         client.on('qr', async (qr) => {
             connectionStatus = 'QR_REQUIRED';
-            addSystemLog('QR code received.');
+            addSystemLog('Standard QR code generated.');
             latestQR = await QRCode.toDataURL(qr);
         });
 
         client.on('ready', () => {
             connectionStatus = 'READY';
             latestQR = null;
-            addSystemLog('WhatsApp is READY!');
+            addSystemLog('SUCCESS: WhatsApp Connection Established!');
         });
 
-        client.on('disconnected', () => {
+        client.on('disconnected', (reason) => {
             connectionStatus = 'DISCONNECTED';
-            addSystemLog('WhatsApp disconnected.');
+            addSystemLog(`WARNING: Disconnected because ${reason}`);
         });
 
-        connectionStatus = 'INITIALIZING';
-        addSystemLog('Initializing WhatsApp client...');
+        addSystemLog('Calling client.initialize()...');
         await client.initialize();
 
     } catch (err) {
-        addSystemLog(`CRITICAL FATAL ERROR: ${err.message}`);
+        addSystemLog(`CRITICAL ERROR DURING INIT: ${err.message}`);
         connectionStatus = 'ERROR';
     }
-};
+}
 
-app.post('/api/admin/restart', (req, res) => {
-    addSystemLog('Manual restart requested.');
-    initWhatsApp();
-    res.json({ status: 'success' });
+// Serve Frontend
+app.use(express.static(path.join(__dirname, '../client/dist')));
+app.get(['/admin', '/admin/*'], (req, res) => {
+    res.sendFile(path.join(__dirname, '../client/dist/index.html'));
 });
 
-// Serve frontend
-app.use(express.static(path.join(__dirname, '../client/dist')));
 app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, '../client/dist/index.html'));
 });
 
-// START SERVER IMMEDIATELY
+// THE SURVIVAL BINDING
 app.listen(PORT, '0.0.0.0', () => {
-    addSystemLog(`SURVIVOR SERVER: Listening on port ${PORT}`);
-    addSystemLog('WAITING 15s before lazy loading WhatsApp...');
-    setTimeout(initWhatsApp, 15000);
+    addSystemLog(`SYSTEM: Listening on port ${PORT}. Health check ready.`);
+    connectionStatus = 'SERVER_UP';
+    
+    // DELAYED HEAVY START: Allow 10s for Cloud Run to register health check success
+    addSystemLog('SYSTEM: Waiting 10s for environment stabilization...');
+    setTimeout(startWhatsApp, 10000);
 });
