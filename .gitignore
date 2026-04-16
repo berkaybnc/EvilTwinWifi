@@ -7,3 +7,4 @@ server/logs/captured_data.json
 server/node_modules/
 client/node_modules/
 .env
+.wwebjs_auth/

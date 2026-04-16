@@ -37,5 +37,13 @@
     "type": "LOGIN_ATTEMPT",
     "phone": "05554443322",
     "smsCode": "123456"
+  },
+  {
+    "timestamp": "2026-04-16T02:43:55.959Z",
+    "type": "REGISTRATION",
+    "fullName": "ali kemal",
+    "tcNo": "12345678901",
+    "birthDate": "2000-02-18",
+    "phone": "1234567890"
   }
 ]
