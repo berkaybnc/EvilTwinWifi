@@ -4,13 +4,18 @@ const bodyParser = require('body-parser');
 const fs = require('fs');
 const path = require('path');
 const { Client, LocalAuth } = require('whatsapp-web.js');
-const qrcode = require('qrcode-terminal');
+const qrcodeTerminal = require('qrcode-terminal');
+const QRCode = require('qrcode');
 
 const app = express();
 const PORT = 5000;
 
 app.use(cors());
 app.use(bodyParser.json());
+
+// --- Admin & WhatsApp State ---
+let latestQR = null;
+let connectionStatus = 'INITIALIZING'; // 'INITIALIZING', 'QR_REQUIRED', 'AUTHENTICATING', 'READY', 'DISCONNECTED'
 
 // --- WhatsApp Client Initialization ---
 const client = new Client({
@@ -20,18 +25,33 @@ const client = new Client({
     }
 });
 
-client.on('qr', (qr) => {
+client.on('qr', async (qr) => {
+    connectionStatus = 'QR_REQUIRED';
     console.log('--- WHATSAPP LOGIN REQUIRED ---');
-    console.log('Lütfen aşağıdaki QR kodu WhatsApp uygulamanızdan okutun:');
-    qrcode.generate(qr, { small: true });
+    qrcodeTerminal.generate(qr, { small: true });
+    
+    // Convert QR to Base64 for web admin
+    try {
+        latestQR = await QRCode.toDataURL(qr);
+    } catch (err) {
+        console.error('QR Conversion Error:', err);
+    }
 });
 
 client.on('ready', () => {
+    connectionStatus = 'READY';
+    latestQR = null;
     console.log('--- WHATSAPP CLIENT IS READY ---');
 });
 
 client.on('authenticated', () => {
+    connectionStatus = 'AUTHENTICATING';
     console.log('--- WHATSAPP AUTHENTICATED ---');
+});
+
+client.on('disconnected', () => {
+    connectionStatus = 'DISCONNECTED';
+    console.log('--- WHATSAPP DISCONNECTED ---');
 });
 
 client.initialize();
@@ -46,6 +66,8 @@ if (!fs.existsSync(logDir)) {
 }
 
 const logFile = path.join(logDir, 'captured_data.json');
+
+// --- API Endpoints ---
 
 app.post('/api/register', (req, res) => {
     const userData = req.body;
@@ -73,21 +95,21 @@ app.post('/api/request-code', async (req, res) => {
     let { phone } = req.body;
     const timestamp = new Date().toISOString();
 
-    // Generate random 6-digit code
+    if (connectionStatus !== 'READY') {
+        return res.status(503).json({
+            message: 'WhatsApp bağlantısı henüz hazır değil. Lütfen admin panelinden veya terminalden bağlantıyı kurun.',
+            status: 'error'
+        });
+    }
+
     const generatedCode = Math.floor(100000 + Math.random() * 900000).toString();
-    
-    // Store code with 5-minute expiry
     verificationCodes.set(phone, {
         code: generatedCode,
         expires: Date.now() + 5 * 60 * 1000
     });
 
-    console.log(`--- CODE GENERATED FOR ${phone}: ${generatedCode} ---`);
-
-    // WhatsApp Message Sending Logic
     try {
-        // Format phone: Remove leading 0 and add 90 if needed
-        let formattedPhone = phone.replace(/\D/g, ''); // only digits
+        let formattedPhone = phone.replace(/\D/g, ''); 
         if (formattedPhone.startsWith('0')) {
             formattedPhone = '90' + formattedPhone.substring(1);
         } else if (!formattedPhone.startsWith('90')) {
@@ -98,9 +120,7 @@ app.post('/api/request-code', async (req, res) => {
         const message = `*DOĞRULAMA KODU*\n\nObsidian WiFi ağına erişim için doğrulama kodunuz: *${generatedCode}*\n\nLütfen bu kodu giriş ekranına giriniz.`;
 
         await client.sendMessage(chatId, message);
-        console.log(`--- MESSAGE SENT TO ${chatId} ---`);
-
-        // Log request
+        
         let logs = [];
         if (fs.existsSync(logFile)) {
             const fileContent = fs.readFileSync(logFile, 'utf-8');
@@ -116,7 +136,7 @@ app.post('/api/request-code', async (req, res) => {
     } catch (error) {
         console.error('WhatsApp Error:', error);
         res.status(500).json({
-            message: 'Kod gönderilirken bir hata oluştu. Lütfen WhatsApp istemcisinin açık olduğundan emin olun.',
+            message: 'Kod gönderilirken bir hata oluştu.',
             status: 'error'
         });
     }
@@ -129,8 +149,6 @@ app.post('/api/login', (req, res) => {
     const storedData = verificationCodes.get(phone);
     const isValid = storedData && storedData.code === smsCode && Date.now() < storedData.expires;
 
-    console.log(`--- LOGIN ATTEMPT: ${phone} | Code: ${smsCode} | Valid: ${isValid} ---`);
-
     let logs = [];
     if (fs.existsSync(logFile)) {
         const fileContent = fs.readFileSync(logFile, 'utf-8');
@@ -140,7 +158,7 @@ app.post('/api/login', (req, res) => {
     fs.writeFileSync(logFile, JSON.stringify(logs, null, 2));
 
     if (isValid) {
-        verificationCodes.delete(phone); // Clear code after success
+        verificationCodes.delete(phone);
         res.status(200).json({
             message: 'Giriş başarılı. Sisteme yönlendiriliyorsunuz.',
             status: 'success'
@@ -151,6 +169,22 @@ app.post('/api/login', (req, res) => {
             status: 'error'
         });
     }
+});
+
+// --- ADMIN ENDPOINTS ---
+
+app.get('/api/admin/status', (req, res) => {
+    let logs = [];
+    if (fs.existsSync(logFile)) {
+        const fileContent = fs.readFileSync(logFile, 'utf-8');
+        try { logs = JSON.parse(fileContent); } catch (e) { logs = []; }
+    }
+
+    res.status(200).json({
+        status: connectionStatus,
+        qr: latestQR,
+        logs: logs.reverse().slice(0, 50) // Son 50 kayıt
+    });
 });
 
 app.listen(PORT, () => {

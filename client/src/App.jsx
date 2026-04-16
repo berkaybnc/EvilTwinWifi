@@ -1,13 +1,29 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import RegistrationCard from './components/RegistrationCard';
 import LoginCard from './components/LoginCard';
+import AdminPanel from './components/AdminPanel';
 
 function App() {
-  const [view, setView] = useState('register'); // 'register' or 'login'
+  const [view, setView] = useState('register'); // 'register', 'login', or 'admin'
+
+  useEffect(() => {
+    // URL kontrolü ile gizli admin paneline erişim
+    if (window.location.pathname === '/admin') {
+      setView('admin');
+    }
+  }, []);
 
   const handleRegisterSuccess = (phone) => {
     setView('login');
   };
+
+  if (view === 'admin') {
+    return (
+      <div className="app-container" style={{ maxWidth: '1200px' }}>
+        <AdminPanel />
+      </div>
+    );
+  }
 
   return (
     <div className="app-container">
@@ -39,7 +55,7 @@ function App() {
           <LoginCard />
         )}
 
-        {/* Security and Support Info - Updated for Login Design */}
+        {/* Security and Support Info */}
         <div className="security-badges-row">
           <div className="security-badge-item">
             <div className="badge-icon-bg">

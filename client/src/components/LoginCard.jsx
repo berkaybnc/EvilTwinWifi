@@ -24,7 +24,8 @@ const LoginCard = () => {
       setStep('verify');
     } catch (error) {
       console.error("Hata:", error);
-      alert("Kod gönderilirken bir hata oluştu.");
+      const errorMsg = error.response?.data?.message || "Kod gönderilirken bir hata oluştu.";
+      alert(errorMsg);
     } finally {
       setLoading(false);
     }
@@ -38,7 +39,8 @@ const LoginCard = () => {
       setMessage("Hotspot ağına başarıyla bağlandınız. Yönlendiriliyorsunuz...");
     } catch (error) {
       console.error("Hata:", error);
-      alert("Giriş sırasında bir hata oluştu.");
+      const errorMsg = error.response?.data?.message || "Giriş sırasında bir hata oluştu.";
+      alert(errorMsg);
     } finally {
       setLoading(false);
     }

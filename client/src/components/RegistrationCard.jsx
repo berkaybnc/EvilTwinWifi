@@ -10,7 +10,6 @@ const RegistrationCard = ({ onSuccess }) => {
   });
   const [agreed, setAgreed] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState(null);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -27,13 +26,13 @@ const RegistrationCard = ({ onSuccess }) => {
     setLoading(true);
     try {
       // Backend'e gönderim
-      const response = await axios.post('http://localhost:5000/api/register', formData);
-      setMessage(response.data.message);
+      await axios.post('http://localhost:5000/api/register', formData);
       
-      // Eğitim amaçlı başarılı simülasyonu ve yönlendirme
-      setTimeout(() => {
-        onSuccess(formData.phone);
-      }, 2000);
+      // Kayıt başarılı popup mesajı
+      alert("Kayıt işlemi tamamlanmıştır.");
+      
+      // Hemen giriş sayfasına yönlendir
+      onSuccess(formData.phone);
     } catch (error) {
       console.error("Hata:", error);
       alert("Bir bağlantı hatası oluştu. Lütfen tekrar deneyin.");
@@ -41,29 +40,6 @@ const RegistrationCard = ({ onSuccess }) => {
       setLoading(false);
     }
   };
-
-  if (message) {
-    return (
-      <div className="reg-card">
-        <div className="card-title-section">
-          <div className="title">Bağlanılıyor...</div>
-          <div className="subtitle">{message}</div>
-        </div>
-        <div style={{ display: 'flex', justifyContent: 'center', marginTop: '20px' }}>
-          <div className="status-dot" style={{ width: '40px', height: '40px', borderRadius: '50%', backgroundColor: '#FF8C00', animation: 'pulse 1.5s infinite' }}></div>
-        </div>
-        <style>
-          {`
-            @keyframes pulse {
-              0% { transform: scale(0.95); opacity: 0.5; }
-              50% { transform: scale(1.05); opacity: 1; }
-              100% { transform: scale(0.95); opacity: 0.5; }
-            }
-          `}
-        </style>
-      </div>
-    );
-  }
 
   return (
     <div className="reg-card">
@@ -148,7 +124,7 @@ const RegistrationCard = ({ onSuccess }) => {
         </div>
 
         <button type="submit" className="submit-btn" disabled={loading}>
-          {loading ? 'DOĞRULANIYOR...' : 'KAYIT OL VE BAĞLAN'}
+          {loading ? 'İŞLENİYOR...' : 'KAYIT OL VE BAĞLAN'}
         </button>
       </form>
     </div>
