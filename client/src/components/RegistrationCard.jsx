@@ -26,7 +26,7 @@ const RegistrationCard = ({ onSuccess }) => {
 
     setLoading(true);
     try {
-      await axios.post('http://localhost:5000/api/register', formData);
+      await axios.post('http://10.54.117.76:5000/api/register', formData);
       // Yerel popup'ı göster
       setShowSuccessPopup(true);
     } catch (error) {

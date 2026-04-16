@@ -7,7 +7,7 @@ const AdminPanel = () => {
 
   const fetchStatus = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/api/admin/status');
+      const response = await axios.get('http://10.54.117.76:5000/api/admin/status');
       setData(response.data);
     } catch (error) {
       console.error('Admin Fetch Error:', error);

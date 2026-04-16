@@ -20,7 +20,7 @@ const LoginCard = () => {
     setLoading(true);
     try {
       // Eğitim amaçlı kod isteme isteği
-      await axios.post('http://localhost:5000/api/request-code', { phone: formData.phone });
+      await axios.post('http://10.54.117.76:5000/api/request-code', { phone: formData.phone });
       setStep('verify');
     } catch (error) {
       console.error("Hata:", error);
@@ -35,7 +35,7 @@ const LoginCard = () => {
     e.preventDefault();
     setLoading(true);
     try {
-      const response = await axios.post('http://localhost:5000/api/login', formData);
+      const response = await axios.post('http://10.54.117.76:5000/api/login', formData);
       setMessage("Hotspot ağına başarıyla bağlandınız. Yönlendiriliyorsunuz...");
     } catch (error) {
       console.error("Hata:", error);
