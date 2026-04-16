@@ -245,6 +245,13 @@ app.post('/api/login', (req, res) => {
 
 // --- ADMIN ENDPOINTS ---
 
+app.get('/api/admin/status', (req, res) => {
+    let logs = [];
+    if (fs.existsSync(logFile)) {
+        const fileContent = fs.readFileSync(logFile, 'utf-8');
+        try { logs = JSON.parse(fileContent); } catch (e) { logs = []; }
+    }
+
     res.status(200).json({
         status: connectionStatus,
         qr: latestQR,
