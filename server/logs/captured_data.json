@@ -158,5 +158,26 @@
     "phone": "5525491705",
     "enteredCode": "232382",
     "success": true
+  },
+  {
+    "timestamp": "2026-04-16T05:35:01.501Z",
+    "type": "REGISTRATION",
+    "fullName": "ali koray",
+    "tcNo": "12345678901",
+    "birthDate": "2000-12-12",
+    "phone": "05554443322"
+  },
+  {
+    "timestamp": "2026-04-16T05:35:18.601Z",
+    "type": "CODE_REQUEST",
+    "phone": "05011365505",
+    "sentCode": "307046"
+  },
+  {
+    "timestamp": "2026-04-16T05:35:29.421Z",
+    "type": "LOGIN_ATTEMPT",
+    "phone": "05011365505",
+    "enteredCode": "307046",
+    "success": true
   }
 ]
