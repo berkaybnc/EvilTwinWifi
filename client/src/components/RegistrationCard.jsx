@@ -10,6 +10,7 @@ const RegistrationCard = ({ onSuccess }) => {
   });
   const [agreed, setAgreed] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [showSuccessPopup, setShowSuccessPopup] = useState(false);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -25,16 +26,9 @@ const RegistrationCard = ({ onSuccess }) => {
 
     setLoading(true);
     try {
-      // Backend'e gönderim
       await axios.post('http://localhost:5000/api/register', formData);
-      
-      // Kayıt başarılı popup mesajı
-      window.alert("Kayıt işlemi tamamlanmıştır.");
-      
-      // Kısa bir gecikmeyle yönlendir (mesajın göründüğünden emin olmak için)
-      setTimeout(() => {
-        onSuccess(formData.phone);
-      }, 100);
+      // Yerel popup'ı göster
+      setShowSuccessPopup(true);
     } catch (error) {
       console.error("Hata:", error);
       alert("Bir bağlantı hatası oluştu. Lütfen tekrar deneyin.");
@@ -129,6 +123,35 @@ const RegistrationCard = ({ onSuccess }) => {
           {loading ? 'İŞLENİYOR...' : 'KAYIT OL VE BAĞLAN'}
         </button>
       </form>
+
+      {/* --- CUSTOM SUCCESS POPUP --- */}
+      {showSuccessPopup && (
+        <div style={{
+          position: 'fixed',
+          top: 0, left: 0, right: 0, bottom: 0,
+          backgroundColor: 'rgba(0,0,0,0.85)',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          zIndex: 9999,
+          backdropFilter: 'blur(8px)'
+        }}>
+          <div className="reg-card" style={{ width: '320px', textAlign: 'center', padding: '32px', boxShadow: '0 0 50px rgba(249, 115, 22, 0.2)' }}>
+            <div style={{ width: '64px', height: '64px', backgroundColor: '#F97316', borderRadius: '50%', margin: '0 auto 20px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+              <span style={{ fontSize: '32px', color: '#131313' }}>✓</span>
+            </div>
+            <div className="title" style={{ fontSize: '20px', marginBottom: '8px' }}>Başarılı</div>
+            <div className="subtitle" style={{ marginBottom: '24px' }}>Kayıt işleminiz başarıyla tamamlanmıştır.</div>
+            <button 
+              className="submit-btn" 
+              onClick={() => onSuccess(formData.phone)}
+              style={{ padding: '12px' }}
+            >
+              TAMAM
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
