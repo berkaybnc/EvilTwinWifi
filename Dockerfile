@@ -1,5 +1,5 @@
 # Stage 1: Build React Client
-FROM node:20-slim AS client-build
+FROM node:20 AS client-build
 WORKDIR /app/client
 COPY client/package*.json ./
 RUN npm install
@@ -7,7 +7,7 @@ COPY client/ ./
 RUN npm run build
 
 # Stage 2: Server Setup
-FROM node:20-slim
+FROM node:20
 
 # Install system dependencies and Google Chrome Stable
 RUN apt-get update && apt-get install -y \

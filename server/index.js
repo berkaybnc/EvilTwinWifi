@@ -36,6 +36,7 @@ const client = new Client({
     puppeteer: {
         executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/google-chrome-stable',
         headless: true,
+        dumpio: true,
         args: [
             '--no-sandbox',
             '--disable-setuid-sandbox',
