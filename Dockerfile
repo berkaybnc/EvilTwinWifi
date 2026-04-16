@@ -1,5 +1,5 @@
 # Stage 1: Build React Client
-FROM node:18-slim AS client-build
+FROM node:20-slim AS client-build
 WORKDIR /app/client
 COPY client/package*.json ./
 RUN npm install
@@ -7,7 +7,7 @@ COPY client/ ./
 RUN npm run build
 
 # Stage 2: Server Setup
-FROM node:18-slim
+FROM node:20-slim
 
 # Install system dependencies for Puppeteer/Chromium
 RUN apt-get update && apt-get install -y \
