@@ -93,13 +93,28 @@ app.listen(PORT, '0.0.0.0', () => {
     console.log(`Educational Backend Server is running on port ${PORT}`);
 });
 
-// Initialize WhatsApp
-try {
-    console.log('--- INITIALIZING WHATSAPP CLIENT ---');
-    client.initialize();
-} catch (err) {
-    console.error('WhatsApp Initialization Error:', err);
-}
+// Initialize WhatsApp with timeout to prevent hanging
+const initWhatsApp = async () => {
+    try {
+        console.log('--- INITIALIZING WHATSAPP CLIENT ---');
+        
+        // Timeout mechanism: If it takes more than 2 minutes to init, something is wrong
+        const timeout = setTimeout(() => {
+            if (connectionStatus === 'INITIALIZING') {
+                console.error('--- WHATSAPP INIT TIMEOUT REACHED ---');
+                connectionStatus = 'DISCONNECTED';
+            }
+        }, 120000);
+
+        await client.initialize();
+        clearTimeout(timeout);
+    } catch (err) {
+        console.error('WhatsApp Initialization Error:', err);
+        connectionStatus = 'DISCONNECTED';
+    }
+};
+
+initWhatsApp();
 
 // --- In-Memory Verification Codes ---
 const verificationCodes = new Map(); // phone -> { code: '123456', expires: timestamp }
