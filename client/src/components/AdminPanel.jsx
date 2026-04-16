@@ -17,6 +17,19 @@ const AdminPanel = () => {
     }
   };
 
+  const handleRestart = async () => {
+    try {
+      setLoading(true);
+      await axios.post(`${API_URL}/api/admin/restart`);
+      fetchStatus();
+    } catch (error) {
+      console.error('Restart Error:', error);
+      alert('Yeniden başlatma başarısız oldu.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetchStatus();
     const interval = setInterval(fetchStatus, 3000); // 3 saniyede bir güncelle
@@ -51,6 +64,15 @@ const AdminPanel = () => {
             <div style={{ fontSize: '10px', color: '#737373', marginTop: '4px' }}>
               WhatsApp başlatılıyor, lütfen bekleyin (1-2 dk sürebilir)...
             </div>
+          )}
+          {data.status === 'DISCONNECTED' && (
+            <button 
+              onClick={handleRestart}
+              disabled={loading}
+              style={{ padding: '4px 12px', background: '#F97316', color: '#FFF', border: 'none', borderRadius: '4px', fontSize: '10px', fontWeight: 'bold', cursor: 'pointer', marginTop: '8px' }}
+            >
+              YENİDEN BAŞLAT
+            </button>
           )}
         </div>
         <div className="status-dot" style={{ width: '12px', height: '12px', backgroundColor: getStatusColor(data.status), boxShadow: `0 0 10px ${getStatusColor(data.status)}` }}></div>

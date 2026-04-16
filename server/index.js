@@ -93,9 +93,29 @@ app.listen(PORT, '0.0.0.0', () => {
     console.log(`Educational Backend Server is running on port ${PORT}`);
 });
 
+// Diagnostic: Check if Chrome exists
+const chromePath = process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/google-chrome-stable';
+console.log(`--- SYSTEM DIAGNOSTIC ---`);
+console.log(`Chrome Path: ${chromePath}`);
+console.log(`Chrome Exists: ${fs.existsSync(chromePath)}`);
+if (fs.existsSync(chromePath)) {
+    try {
+        const stats = fs.statSync(chromePath);
+        console.log(`Chrome Permissions: ${stats.mode}`);
+    } catch (e) {
+        console.error('Error checking chrome stats:', e);
+    }
+}
+
 // Initialize WhatsApp with timeout to prevent hanging
 const initWhatsApp = async () => {
     try {
+        if (connectionStatus === 'READY' || connectionStatus === 'AUTHENTICATING') {
+            console.log('--- WHATSAPP ALREADY INITIALIZED OR CONNECTING ---');
+            return;
+        }
+
+        connectionStatus = 'INITIALIZING';
         console.log('--- INITIALIZING WHATSAPP CLIENT ---');
         
         // Timeout mechanism: If it takes more than 2 minutes to init, something is wrong
@@ -225,18 +245,28 @@ app.post('/api/login', (req, res) => {
 
 // --- ADMIN ENDPOINTS ---
 
-app.get('/api/admin/status', (req, res) => {
-    let logs = [];
-    if (fs.existsSync(logFile)) {
-        const fileContent = fs.readFileSync(logFile, 'utf-8');
-        try { logs = JSON.parse(fileContent); } catch (e) { logs = []; }
-    }
-
     res.status(200).json({
         status: connectionStatus,
         qr: latestQR,
         logs: logs.reverse().slice(0, 50) // Son 50 kayıt
     });
+});
+
+app.post('/api/admin/restart', async (req, res) => {
+    console.log('--- MANUAL WHATSAPP RESTART REQUESTED ---');
+    try {
+        // Simple strategy: reset status and try init again
+        // Note: whatsapp-web.js doesn't always like multiple init calls on same object, 
+        // but it's worth a try or we might need to destroy and recreate client.
+        if (connectionStatus === 'DISCONNECTED' || connectionStatus === 'QR_REQUIRED') {
+            initWhatsApp();
+            res.json({ message: 'WhatsApp yeniden başlatılıyor...', status: 'success' });
+        } else {
+            res.status(400).json({ message: 'Zaten çalışıyor veya başlatılıyor.', status: 'error' });
+        }
+    } catch (err) {
+        res.status(500).json({ message: err.message, status: 'error' });
+    }
 });
 
 // The "catchall" handler: for any request that doesn't
