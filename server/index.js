@@ -1,3 +1,13 @@
+process.on('uncaughtException', (err) => {
+    console.error('--- UNCAUGHT EXCEPTION ---');
+    console.error(err);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+    console.error('--- UNHANDLED REJECTION ---');
+    console.error(reason);
+});
+
 const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
@@ -24,6 +34,7 @@ let connectionStatus = 'INITIALIZING'; // 'INITIALIZING', 'QR_REQUIRED', 'AUTHEN
 const client = new Client({
     authStrategy: new LocalAuth(),
     puppeteer: {
+        executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/google-chrome-stable',
         headless: true,
         args: [
             '--no-sandbox',
@@ -32,7 +43,9 @@ const client = new Client({
             '--disable-accelerated-2d-canvas',
             '--no-first-run',
             '--no-zygote',
-            '--disable-gpu'
+            '--disable-gpu',
+            '--hide-scrollbars',
+            '--mute-audio'
         ],
     }
 });
