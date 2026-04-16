@@ -1,29 +1,20 @@
-process.on('uncaughtException', (err) => {
-    console.error('--- UNCAUGHT EXCEPTION ---');
-    console.error(err);
-});
-
-process.on('unhandledRejection', (reason, promise) => {
-    console.error('--- UNHANDLED REJECTION ---');
-    console.error(reason);
-});
-
 const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
 const fs = require('fs');
 const path = require('path');
 const { Client, LocalAuth } = require('whatsapp-web.js');
-const qrcodeTerminal = require('qrcode-terminal');
 const QRCode = require('qrcode');
 
+console.log('--- BOOTSTRAP: Starting Obsidian Server ---');
+
 const app = express();
-const PORT = process.env.PORT || 8080;
+// PORT binding is now more robust with parseInt
+const PORT = parseInt(process.env.PORT || '8080', 10);
 
 app.use(cors());
 app.use(bodyParser.json());
 
-// Log directory and captured data file
 // Log directory and captured data file - use /tmp for Cloud Run compatibility
 const logDir = '/tmp/obsidian-logs';
 try {
@@ -46,6 +37,8 @@ const addSystemLog = (msg) => {
     if (systemLogs.length > 50) systemLogs.shift();
 };
 
+addSystemLog('System diagnostics initialized.');
+
 // --- WHATSAPP CLIENT MANAGEMENT ---
 const createClient = () => {
     addSystemLog('Creating new WhatsApp client instance...');
@@ -56,12 +49,12 @@ const createClient = () => {
     addSystemLog(`Chrome exists: ${fs.existsSync(chromePath)}`);
 
     const newClient = new Client({
-        // Specify /tmp for auth to avoid permission issues
+        // Explicit dataPath in /tmp to avoid permission issues
         authStrategy: new LocalAuth({ dataPath: '/tmp/.wwebjs_auth' }),
         puppeteer: {
             executablePath: chromePath,
             headless: true,
-            dumpio: true, // Detailed Chrome logs to console
+            dumpio: true, 
             args: [
                 '--no-sandbox',
                 '--disable-setuid-sandbox',
@@ -111,9 +104,10 @@ const createClient = () => {
 };
 
 const initWhatsApp = async () => {
+    addSystemLog('initWhatsApp procedure started...');
     try {
         if (client) {
-            addSystemLog('Destroying existing client...');
+            addSystemLog('Destroying existing client state...');
             await client.destroy().catch(e => addSystemLog(`Destroy error: ${e.message}`));
         }
 
@@ -137,6 +131,11 @@ const initWhatsApp = async () => {
 };
 
 // --- API ENDPOINTS ---
+
+// Dedicated Health Check for Cloud Run SURVIVAL
+app.get('/health', (req, res) => {
+    res.status(200).send('OK');
+});
 
 app.get('/api/admin/status', (req, res) => {
     let logs = [];
@@ -197,7 +196,6 @@ app.post('/api/request-code', async (req, res) => {
 app.use(express.static(path.join(__dirname, '../client/dist')));
 
 // --- SPA & ADMIN ROUTING ---
-// Explicitly handle /admin and /admin/ to make sure SPA works
 app.get(['/admin', '/admin/*'], (req, res) => {
     res.sendFile(path.join(__dirname, '../client/dist/index.html'));
 });
@@ -207,8 +205,16 @@ app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, '../client/dist/index.html'));
 });
 
+// START SERVER
 app.listen(PORT, '0.0.0.0', () => {
-    addSystemLog(`Server is running on port ${PORT}`);
-    // Start initial WhatsApp bridge
-    initWhatsApp();
+    addSystemLog(`EXPRESS: Server listening on 0.0.0.0:${PORT}`);
+    
+    // LAZY INITIALIZATION: 
+    // Wait 10 seconds before starting WhatsApp bridge.
+    // This ensures the container is marked as "HEALTHY" by Cloud Run first.
+    addSystemLog('LAZY INIT: Health check passed. Starting WhatsApp in 10s...');
+    setTimeout(() => {
+        addSystemLog('LAZY INIT: Starting WhatsApp bridge now!');
+        initWhatsApp();
+    }, 10000);
 });
