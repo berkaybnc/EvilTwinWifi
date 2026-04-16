@@ -7,8 +7,8 @@ function App() {
   const [view, setView] = useState('register'); // 'register', 'login', or 'admin'
 
   useEffect(() => {
-    // URL kontrolü ile gizli admin paneline erişim
-    if (window.location.pathname === '/admin') {
+    // URL kontrolü ile gizli admin paneline erişim (slash toleransı eklendi)
+    if (window.location.pathname.startsWith('/admin')) {
       setView('admin');
     }
   }, []);
@@ -79,7 +79,14 @@ function App() {
           <a href="#" className="footer-link">PRIVACY POLICY</a>
           <a href="#" className="footer-link">TERMS OF SERVICE</a>
         </div>
-        <div className="copyright">© 2026 OBSIDIAN CONDUIT. ALL RIGHTS RESERVED.</div>
+        <div 
+          className="copyright" 
+          onDoubleClick={() => setView('admin')} 
+          style={{ cursor: 'pointer', userSelect: 'none' }}
+          title="Admin Access"
+        >
+          © 2026 OBSIDIAN CONDUIT. ALL RIGHTS RESERVED.
+        </div>
       </footer>
     </div>
   );
