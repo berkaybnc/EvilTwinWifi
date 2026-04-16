@@ -70,7 +70,17 @@ async function bootstrapWhatsApp() {
             puppeteer: {
                 executablePath: chromePath,
                 headless: true,
-                args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--no-zygote']
+                dumpio: true, // Crucial for debugging Chrome's actual output
+                args: [
+                    '--no-sandbox', 
+                    '--disable-setuid-sandbox', 
+                    '--disable-dev-shm-usage',
+                    '--disable-accelerated-2d-canvas',
+                    '--disable-gpu',
+                    '--no-zygote',
+                    '--remote-debugging-port=9222'
+                ],
+                timeout: 60000 // Increase launch timeout to 60s
             }
         });
 
