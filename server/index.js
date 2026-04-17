@@ -55,7 +55,7 @@ async function bootstrapWhatsApp() {
 
         addSystemLog('--- LOADER: Phase 2 (Environment) ---');
         const isWin = process.platform === 'win32';
-        const chromePath = process.env.PUPPETEER_EXECUTABLE_PATH || (isWin ? undefined : '/usr/bin/google-chrome-stable');
+        const chromePath = process.env.PUPPETEER_EXECUTABLE_PATH || (isWin ? undefined : '/usr/bin/chromium');
 
         if (chromePath) {
             addSystemLog(`Using specific Chrome path: ${chromePath}`);
@@ -77,8 +77,7 @@ async function bootstrapWhatsApp() {
             puppeteer: {
                 executablePath: chromePath,
                 headless: true,
-                dumpio: true,  // Enabled to see browser output via PIPE
-                pipe: true,    // THE FIX: Bypassing WebSocket handshake totally
+                dumpio: true,
                 args: isWin ? [
                     '--no-sandbox',
                     '--disable-setuid-sandbox'
@@ -89,14 +88,12 @@ async function bootstrapWhatsApp() {
                     '--disable-accelerated-2d-canvas',
                     '--disable-gpu',
                     '--no-zygote',
+                    '--single-process',
                     '--disable-extensions',
-                    '--disable-features=VizDisplayCompositor',
-                    '--disable-software-rasterizer',
                     '--no-first-run',
-                    '--no-default-browser-check',
-                    '--remote-debugging-port=9222'
+                    '--no-default-browser-check'
                 ],
-                timeout: 60000
+                timeout: 120000
             }
         });
 
