@@ -77,7 +77,7 @@ async function bootstrapWhatsApp() {
             puppeteer: {
                 executablePath: chromePath,
                 headless: true,
-                dumpio: true,
+                dumpio: false, // Disabling dumpio to prevent LOG-related SIGPIPE errors
                 args: isWin ? [
                     '--no-sandbox',
                     '--disable-setuid-sandbox'
@@ -89,6 +89,7 @@ async function bootstrapWhatsApp() {
                     '--disable-gpu',
                     '--no-zygote',
                     '--disable-extensions',
+                    '--disable-features=VizDisplayCompositor', // Stability fix for container environments
                     '--remote-debugging-port=9222'
                 ],
                 timeout: 60000
