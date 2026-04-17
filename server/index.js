@@ -52,28 +52,38 @@ async function bootstrapWhatsApp() {
         const { Client, LocalAuth } = require('whatsapp-web.js');
         const QRCode = require('qrcode');
         const fs = require('fs');
-        
+
         addSystemLog('--- LOADER: Phase 2 (Environment) ---');
-        const chromePath = process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/google-chrome-stable';
-        
+        const isWin = process.platform === 'win32';
+        const chromePath = process.env.PUPPETEER_EXECUTABLE_PATH || (isWin ? undefined : '/usr/bin/google-chrome-stable');
+
+        if (chromePath) {
+            addSystemLog(`Using specific Chrome path: ${chromePath}`);
+        } else {
+            addSystemLog('No specific Chrome path set, using Puppeteer default.');
+        }
+
         if (client) {
             addSystemLog('Destroying existing client...');
-            await client.destroy().catch(() => {});
+            await client.destroy().catch(() => { });
         }
 
         connectionStatus = 'INITIALIZING';
         addSystemLog('Creating WhatsApp Instance...');
-        
+
         client = new Client({
-            // Ensure we use /tmp for everything in Cloud Run
-            authStrategy: new LocalAuth({ dataPath: '/tmp/.wwebjs_auth' }),
+            // Path fix: Use local folder on windows, /tmp on linux
+            authStrategy: new LocalAuth({ dataPath: isWin ? './.wwebjs_auth' : '/tmp/.wwebjs_auth' }),
             puppeteer: {
                 executablePath: chromePath,
                 headless: true,
-                dumpio: true, // Crucial for debugging Chrome's actual output
-                args: [
-                    '--no-sandbox', 
-                    '--disable-setuid-sandbox', 
+                dumpio: true,
+                args: isWin ? [
+                    '--no-sandbox',
+                    '--disable-setuid-sandbox'
+                ] : [
+                    '--no-sandbox',
+                    '--disable-setuid-sandbox',
                     '--disable-dev-shm-usage',
                     '--disable-accelerated-2d-canvas',
                     '--disable-gpu',
@@ -82,7 +92,7 @@ async function bootstrapWhatsApp() {
                     '--disable-extensions',
                     '--remote-debugging-port=9222'
                 ],
-                timeout: 60000 // Increase launch timeout to 60s
+                timeout: 60000
             }
         });
 
@@ -128,7 +138,7 @@ app.get('*', (req, res) => {
 app.listen(PORT, '0.0.0.0', () => {
     addSystemLog(`V8: Port ${PORT} bound successfully.`);
     connectionStatus = 'SERVER_UP';
-    
+
     // DELAYED AWAKENING (15s)
     addSystemLog('Stabilization period (15s) starting...');
     setTimeout(bootstrapWhatsApp, 15000);
