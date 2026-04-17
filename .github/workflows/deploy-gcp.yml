@@ -52,4 +52,6 @@ jobs:
             --cpu 1 \
             --no-cpu-throttling \
             --execution-environment gen2 \
-            --set-env-vars "NODE_ENV=production"
+            --add-volume=name=wa-session,type=cloud-storage,bucket=obsidian-session-data \
+            --add-volume-mount=volume=wa-session,mount-path=/app/server/session \
+            --set-env-vars "NODE_ENV=production,AUTH_PATH=/app/server/session"
