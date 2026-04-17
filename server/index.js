@@ -175,6 +175,18 @@ async function bootstrapWhatsApp() {
         const AUTH_PATH = process.env.AUTH_PATH || (isWin ? './.wwebjs_auth' : '/tmp/.wwebjs_auth');
         addSystemLog(`Auth Path: ${AUTH_PATH}`);
 
+        // LOCK CLEANUP: GCS FUSE üzerinde bazen kilit dosyaları (SingletonLock) takılı kalabilir.
+        // Bu, tarayıcının "already running" hatası vermesine sebep olur. Temizlik yapıyoruz.
+        const lockFile = path.join(AUTH_PATH, 'session', 'SingletonLock');
+        if (fs.existsSync(lockFile)) {
+            try {
+                addSystemLog('Removing stale SingletonLock file...');
+                fs.unlinkSync(lockFile);
+            } catch (e) {
+                addSystemLog('Lock file cleanup skipped or failed (might be ok).');
+            }
+        }
+
         client = new Client({
             authStrategy: new LocalAuth({ dataPath: AUTH_PATH }),
             puppeteer: {
