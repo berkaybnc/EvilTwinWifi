@@ -78,7 +78,6 @@ async function bootstrapWhatsApp() {
                 executablePath: chromePath,
                 headless: true,
                 dumpio: true,
-                userDataDir: isWin ? undefined : '/tmp/puppeteer-user-data', // Use explicit data dir on linux
                 args: isWin ? [
                     '--no-sandbox',
                     '--disable-setuid-sandbox'
