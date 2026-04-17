@@ -78,6 +78,8 @@ async function bootstrapWhatsApp() {
                     '--disable-accelerated-2d-canvas',
                     '--disable-gpu',
                     '--no-zygote',
+                    '--single-process',
+                    '--disable-extensions',
                     '--remote-debugging-port=9222'
                 ],
                 timeout: 60000 // Increase launch timeout to 60s
