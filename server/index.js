@@ -78,6 +78,7 @@ async function bootstrapWhatsApp() {
                 executablePath: chromePath,
                 headless: true,
                 dumpio: true,
+                protocolTimeout: 120000, // Increase protocol timeout to handle heavy loads
                 args: isWin ? [
                     '--no-sandbox',
                     '--disable-setuid-sandbox'
@@ -88,10 +89,34 @@ async function bootstrapWhatsApp() {
                     '--disable-accelerated-2d-canvas',
                     '--disable-gpu',
                     '--no-zygote',
-                    '--single-process',
+                    '--hide-scrollbars',
+                    '--mute-audio',
+                    '--disable-breakpad',
                     '--disable-extensions',
+                    '--disable-features=AudioServiceOutOfProcess',
+                    '--disable-features=VizDisplayCompositor',
+                    '--disable-ipc-flooding-protection',
+                    '--disable-notifications',
+                    '--disable-background-networking',
+                    '--disable-background-timer-throttling',
+                    '--disable-backgrounding-occluded-windows',
+                    '--disable-client-side-phishing-detection',
+                    '--disable-default-apps',
+                    '--disable-domain-reliability',
+                    '--disable-hang-monitor',
+                    '--disable-offer-store-unmasked-wallet-cards',
+                    '--disable-popup-blocking',
+                    '--disable-print-preview',
+                    '--disable-prompt-on-repost',
+                    '--disable-renderer-backgrounding',
+                    '--disable-speech-api',
+                    '--disable-sync',
+                    '--password-store=basic',
+                    '--use-gl=swiftshader',
+                    '--use-mock-keychain',
                     '--no-first-run',
-                    '--no-default-browser-check'
+                    '--no-default-browser-check',
+                    '--no-pings'
                 ],
                 timeout: 120000
             }
