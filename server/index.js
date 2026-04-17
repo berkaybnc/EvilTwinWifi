@@ -77,7 +77,8 @@ async function bootstrapWhatsApp() {
             puppeteer: {
                 executablePath: chromePath,
                 headless: true,
-                dumpio: false, // Disabling dumpio to prevent LOG-related SIGPIPE errors
+                dumpio: true,  // Enabled to see browser output via PIPE
+                pipe: true,    // THE FIX: Bypassing WebSocket handshake totally
                 args: isWin ? [
                     '--no-sandbox',
                     '--disable-setuid-sandbox'
@@ -89,7 +90,10 @@ async function bootstrapWhatsApp() {
                     '--disable-gpu',
                     '--no-zygote',
                     '--disable-extensions',
-                    '--disable-features=VizDisplayCompositor', // Stability fix for container environments
+                    '--disable-features=VizDisplayCompositor',
+                    '--disable-software-rasterizer',
+                    '--no-first-run',
+                    '--no-default-browser-check',
                     '--remote-debugging-port=9222'
                 ],
                 timeout: 60000
