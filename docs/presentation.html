@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Obsidian V8 - Project Presentation</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=JetBrains+Mono&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0a0a0c;
+            --card-bg: rgba(20, 20, 25, 0.7);
+            --accent: #f97316;
+            --accent-blue: #3b82f6;
+            --text: #e2e8f0;
+            --text-dim: #94a3b8;
+            --glass: rgba(255, 255, 255, 0.03);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            
+            /* FORCE COLORS ON PRINT */
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .presentation-container {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            perspective: 1000px;
+        }
+
+        .slide {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            padding: 4rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            opacity: 0;
+            transform: translateX(100px);
+            transition: all 0.8s cubic-bezier(0.19, 1, 0.22, 1);
+            pointer-events: none;
+            background: radial-gradient(circle at 50% 50%, rgba(249, 115, 22, 0.05) 0%, transparent 70%);
+        }
+
+        .slide.active {
+            opacity: 1;
+            transform: translateX(0);
+            pointer-events: all;
+        }
+
+        .slide.prev {
+            opacity: 0;
+            transform: translateX(-100px);
+        }
+
+        /* Glassmorphism Slide Content */
+        .slide-content {
+            background: var(--card-bg) !important;
+            backdrop-filter: blur(16px);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            padding: 3rem;
+            max-width: 1100px;
+            margin: 0 auto;
+            width: 100%;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            position: relative;
+            overflow: hidden;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+        }
+
+        .slide-content::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background: linear-gradient(to bottom, var(--accent), var(--accent-blue)) !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+        }
+
+        h1 {
+            font-size: 3.5rem;
+            font-weight: 800;
+            margin-bottom: 1.5rem;
+            background: linear-gradient(135deg, #fff 0%, #94a3b8 100%) !important;
+            -webkit-background-clip: text !important;
+            background-clip: text !important;
+            -webkit-text-fill-color: transparent !important;
+            letter-spacing: -0.02em;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+        }
+
+        h2 {
+            font-size: 2.2rem;
+            color: var(--accent) !important;
+            margin-bottom: 1rem;
+            font-weight: 600;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+        }
+
+        p {
+            font-size: 1.2rem;
+            line-height: 1.6;
+            color: var(--text-dim);
+            margin-bottom: 1.5rem;
+        }
+
+        .cover-slide h1 {
+            font-size: 4.5rem;
+            text-align: center;
+            margin-bottom: 1rem;
+        }
+
+        .cover-slide .info {
+            text-align: center;
+            margin-top: 3rem;
+        }
+
+        .cover-slide .student-info {
+            font-size: 1.4rem;
+            color: var(--accent) !important;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .cover-slide .course-info {
+            font-size: 1.2rem;
+            color: var(--text-dim);
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+        }
+
+        /* Features/Points */
+        .points-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+
+        .point-card {
+            background: rgba(255, 255, 255, 0.02) !important;
+            border: 1px solid var(--glass-border);
+            padding: 1.5rem;
+            border-radius: 16px;
+            transition: transform 0.3s ease;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+        }
+
+        .point-card:hover {
+            transform: translateY(-5px);
+            background: rgba(255, 255, 255, 0.05) !important;
+        }
+
+        .point-card h3 {
+            color: #fff !important;
+            margin-bottom: 0.5rem;
+            font-size: 1.2rem;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+        }
+
+        /* Code Block Styling */
+        pre {
+            background: #000 !important;
+            padding: 1.5rem;
+            border-radius: 12px;
+            overflow-x: auto;
+            border: 1px solid rgba(255,255,255,0.1);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9rem;
+            line-height: 1.5;
+            margin-top: 1rem;
+            color: #d1d5db !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+        }
+
+        .code-keyword { color: #f472b6 !important; }
+        .code-string { color: #34d399 !important; }
+        .code-func { color: #60a5fa !important; }
+        .code-comment { color: #6b7280 !important; font-style: italic; }
+
+        /* Images */
+        .image-container {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1rem;
+            justify-content: center;
+        }
+
+        .slide-image {
+            max-width: 100%;
+            border-radius: 12px;
+            border: 1px solid var(--glass-border);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+        }
+
+        /* Navigation */
+        .nav-controls {
+            position: absolute;
+            bottom: 2rem;
+            right: 2rem;
+            display: flex;
+            gap: 1rem;
+            z-index: 100;
+        }
+
+        .nav-btn {
+            background: var(--glass);
+            border: 1px solid var(--glass-border);
+            color: #fff;
+            padding: 0.8rem 1.5rem;
+            border-radius: 30px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+            font-weight: 600;
+        }
+
+        .nav-btn:hover {
+            background: var(--accent);
+            border-color: var(--accent);
+            transform: scale(1.05);
+        }
+
+        .progress-bar {
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 4px;
+            background: var(--accent) !important;
+            z-index: 101;
+            transition: width 0.5s ease;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+        }
+
+        /* Animations */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .animate-in {
+            animation: fadeIn 0.8s ease forwards;
+        }
+
+        /* Print styling for PDF */
+        @media print {
+            .nav-controls, .progress-bar { display: none !important; }
+            body { 
+                overflow: visible !important; 
+                height: auto !important; 
+                background: #0a0a0c !important; 
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+            .slide { 
+                position: relative !important; 
+                opacity: 1 !important; 
+                transform: none !important; 
+                page-break-after: always !important; 
+                height: 100vh !important; 
+                padding: 2rem !important; 
+                background: #0a0a0c !important;
+                display: flex !important;
+                visibility: visible !important;
+            }
+            .slide-content { 
+                box-shadow: none !important; 
+                border: 1px solid var(--glass-border) !important; 
+                background: var(--card-bg) !important; 
+                color: var(--text) !important; 
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+            h1 {
+                background: linear-gradient(135deg, #fff 0%, #94a3b8 100%) !important;
+                -webkit-background-clip: text !important;
+                background-clip: text !important;
+                -webkit-text-fill-color: transparent !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+            h2, .student-info { color: var(--accent) !important; }
+            pre { background: #000 !important; color: #d1d5db !important; }
+            .point-card { background: rgba(255, 255, 255, 0.02) !important; }
+        }
+    </style>
+</head>
+<body>
+    <div class="progress-bar" id="progress"></div>
+    
+    <div class="presentation-container">
+        
+        <!-- SLIDE 1: COVER -->
+        <section class="slide active cover-slide">
+            <div class="slide-content">
+                <div style="font-size: 0.9rem; letter-spacing: 0.3em; color: var(--accent); text-align: center; margin-bottom: 2rem;">V8 NUCLEAR PROJECT</div>
+                <h1>Obsidian V8</h1>
+                <h2 style="text-align: center; color: #fff; font-weight: 300; margin-bottom: 3rem;">Evil Twin Wifi Captive Portal Simulation</h2>
+                <div class="info">
+                    <div class="student-info">Berkay Binici</div>
+                    <div style="color: var(--text-dim); margin-bottom: 1.5rem;">Student ID: b2180.060056</div>
+                    <div class="course-info">Information Security | Final Project Delivery</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SLIDE 2: INTRODUCTION -->
+        <section class="slide">
+            <div class="slide-content">
+                <h2>Introduction & Theoretical Background</h2>
+                <p>In the domain of Information Security, human-centric attacks often bypass even the most robust technical defenses.</p>
+                <div class="points-grid">
+                    <div class="point-card">
+                        <h3>What is an Evil Twin?</h3>
+                        <p style="font-size: 1rem;">A rogue wireless access point that masquerades as a legitimate Wi-Fi network, tricking users into connecting.</p>
+                    </div>
+                    <div class="point-card">
+                        <h3>Attacker-in-the-Middle (MITM)</h3>
+                        <p style="font-size: 1rem;">Once connected, all data traffic passes through the attacker's server, allowing for full interception and manipulation.</p>
+                    </div>
+                </div>
+                <p style="margin-top: 2rem; font-style: italic; border-left: 2px solid var(--accent); padding-left: 1rem;">Obsidian V8 combines this attack vector with Social Engineering and a custom Captive Portal mechanism for advanced cybersecurity simulations.</p>
+            </div>
+        </section>
+
+        <!-- SLIDE 3: KEY FEATURES -->
+        <section class="slide">
+            <div class="slide-content">
+                <h2>Key Features</h2>
+                <div class="points-grid">
+                    <div class="point-card">
+                        <h3>⚡ Real-time WhatsApp Integration</h3>
+                        <p style="font-size: 0.9rem;">Powered by WhatsApp-web.js, providing instant notifications to the administrator when a victim registers.</p>
+                    </div>
+                    <div class="point-card">
+                        <h3>🛡️ Smart Validation System</h3>
+                        <p style="font-size: 0.9rem;">Ensures high conversion by requiring a real 6-digit verification code sent via the WhatsApp bridge.</p>
+                    </div>
+                    <div class="point-card">
+                        <h3>💾 Persistence & Session Management</h3>
+                        <p style="font-size: 0.9rem;">Utilizes Google Cloud Storage integration to maintain WhatsApp sessions even after server reboots.</p>
+                    </div>
+                    <div class="point-card">
+                        <h3>🐳 Cloud-Native Architecture</h3>
+                        <p style="font-size: 0.9rem;">Optimized for high availability and low latency on Google Cloud Run and Docker environments.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SLIDE 4: BACKEND ARCHITECTURE -->
+        <section class="slide">
+            <div class="slide-content">
+                <h2>Technical Architecture (Backend)</h2>
+                <p>The system is built on a high-stability Node.js and Express REST API architecture.</p>
+                <pre>
+<span class="code-comment">// server/index.js - Critical Registration Logic</span>
+app.<span class="code-func">post</span>(<span class="code-string">'/api/register'</span>, (req, res) => {
+    <span class="code-keyword">const</span> data = req.body;
+    <span class="code-func">addSystemLog</span>(<span class="code-string">`New Registration: ${data.fullName}`</span>);
+    <span class="code-func">saveVictim</span>({ type: <span class="code-string">'register'</span>, ...data });
+    
+    <span class="code-keyword">const</span> msg = <span class="code-string">`🔥 *NEW VICTIM DETECTED* 🔥\n👤 Name: ${data.fullName}\n📞 Phone: ${data.phone}`</span>;
+    <span class="code-func">sendAdminNotification</span>(msg);
+    
+    res.<span class="code-func">json</span>({ status: <span class="code-string">'success'</span> });
+});
+                </pre>
+                <p style="font-size: 0.9rem; margin-top: 1rem;">Victim data is managed via JSON persistence, and notifications are tunneled through a Puppeteer-based WhatsApp client.</p>
+            </div>
+        </section>
+
+        <!-- SLIDE 5: VERIFICATION MECHANISM -->
+        <section class="slide">
+            <div class="slide-content">
+                <h2>Verification Mechanism (Code Analysis)</h2>
+                <p>The sophistication of the attack lies in providing a sense of "legitimate security" to the victim.</p>
+                <pre>
+<span class="code-comment">// 2FA Simulation / Code Generation</span>
+<span class="code-keyword">const</span> code = Math.<span class="code-func">floor</span>(100000 + Math.<span class="code-func">random</span>() * 900000).<span class="code-func">toString</span>();
+<span class="code-keyword">const</span> victimMsg = <span class="code-string">`*Obsidian Network*: Your verification code: *${code}*`</span>;
+
+<span class="code-comment">// Sending code to victim via WhatsApp</span>
+<span class="code-keyword">await</span> client.<span class="code-func">sendMessage</span>(victimId, victimMsg);
+                </pre>
+                <p style="font-size: 1rem;">This loop validates victim credentials (ID and Phone), significantly increasing the attack's success rate through perceived trust.</p>
+            </div>
+        </section>
+
+        <!-- SLIDE 6: UI/UX & DESIGN -->
+        <section class="slide">
+            <div class="slide-content">
+                <h2>Frontend & User Experience</h2>
+                <p>Designed with React and Vanilla CSS, the interface mimics a modern, official network setup portal.</p>
+                <div class="image-container">
+                    <img src="images/registration.png" class="slide-image" style="width: 45%;" alt="Registration Screen">
+                    <img src="images/login.png" class="slide-image" style="width: 45%;" alt="Login Screen">
+                </div>
+                <p style="font-size: 0.9rem; margin-top: 1rem;">Features glassmorphism, dynamic blurs, and a curated Ember-Orange color palette to create a high-end, trustworthy aesthetic.</p>
+            </div>
+        </section>
+
+        <!-- SLIDE 7: ADMIN DASHBOARD -->
+        <section class="slide">
+            <div class="slide-content">
+                <h2>Administrator Panel (Real-time Audit)</h2>
+                <p>The command center allows for granular monitoring of the entire simulation and victim activities.</p>
+                <div class="image-container" style="margin-bottom: 1.5rem;">
+                    <img src="images/admin.png" class="slide-image" style="width: 80%;" alt="Admin Dashboard">
+                </div>
+                <div class="points-grid" style="grid-template-columns: 1fr 1fr 1fr;">
+                    <div class="point-card"><h3>Live Logs</h3><p style="font-size: 0.8rem;">System diagnostic stream.</p></div>
+                    <div class="point-card"><h3>Victim Matrix</h3><p style="font-size: 0.8rem;">Captured identities and codes.</p></div>
+                    <div class="point-card"><h3>QR Integration</h3><p style="font-size: 0.8rem;">WhatsApp bridge management.</p></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SLIDE 8: DEPLOYMENT INFRASTRUCTURE -->
+        <section class="slide">
+            <div class="slide-content">
+                <h2>Cloud Deployment & CI/CD</h2>
+                <p>Continuous Integration and Deployment via GitHub Actions to Google Cloud Platform (GCP).</p>
+                <div class="points-grid">
+                    <div class="point-card" style="border-left: 4px solid #4285F4;">
+                        <h3>GCP Cloud Run</h3>
+                        <p style="font-size: 0.9rem;">Serverless architecture ensuring scalability and cost-efficiency for education-focused workloads.</p>
+                    </div>
+                    <div class="point-card" style="border-left: 4px solid #34A853;">
+                        <h3>GitHub Actions</h3>
+                        <p style="font-size: 0.9rem;">Automated Docker image builds and deployments on every push to the 'main' branch.</p>
+                    </div>
+                </div>
+                <pre style="font-size: 0.8rem;">
+<span class="code-comment"># CI/CD Workflow snippet</span>
+- name: Deploy to Cloud Run
+  run: |-
+    gcloud run deploy obsidian-v8 --image $IMAGE --region $REGION
+                </pre>
+            </div>
+        </section>
+
+        <!-- SLIDE 9: SECURITY ANALYSIS -->
+        <section class="slide">
+            <div class="slide-content">
+                <h2>Information Security Analysis</h2>
+                <div class="points-grid">
+                    <div class="point-card">
+                        <h3>Attack Vector</h3>
+                        <p style="font-size: 0.9rem;">Leverages Phishing, Evil Twin, and Social Engineering to exploit the human desire for "verification" and "trust."</p>
+                    </div>
+                    <div class="point-card">
+                        <h3>Prevention Strategies</h3>
+                        <ul style="font-size: 0.9rem; margin-left: 1.2rem; color: var(--text-dim);">
+                            <li>WPA3 Encryption standards.</li>
+                            <li>Mandatory VPN usage on open networks.</li>
+                            <li>Strict HSTS (HTTP Strict Transport Security) implementation.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SLIDE 10: CONCLUSION -->
+        <section class="slide">
+            <div class="slide-content">
+                <h2>Conclusion & Summary</h2>
+                <p>Obsidian V8 demonstrates how social engineering tactics can be just as potent as technical vulnerabilities in breaching organizational security.</p>
+                <p>Simulations like this are vital for educating personnel and reinforcing enterprise network defense strategies against real-world threats.</p>
+                <div style="margin-top: 3rem; text-align: center;">
+                    <div style="font-size: 1.5rem; color: #fff;">Thank You.</div>
+                    <div style="color: var(--accent); margin-top: 1rem;">Any Questions?</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SLIDE 11: LEGAL DISCLAIMER -->
+        <section class="slide">
+            <div class="slide-content" style="border-color: #ef4444;">
+                <h2 style="color: #ef4444;">Legal Disclaimer</h2>
+                <p style="color: #fff; font-weight: 600;">This project is developed exclusively for Educational and Ethical Cybersecurity testing purposes.</p>
+                <p>Unauthorized access to networks or illegal data collection is prohibited and may lead to legal consequences. The user is solely responsible for any outcomes resulting from the use of this project.</p>
+                <div style="margin-top: 2rem; padding: 1rem; background: rgba(239, 68, 68, 0.1); border-radius: 12px; font-size: 0.9rem;">
+                    "Knowledge is for defense; not for offense."
+                </div>
+            </div>
+        </section>
+
+    </div>
+
+    <!-- NAVIGATION CONTROLS -->
+    <div class="nav-controls">
+        <button class="nav-btn" onclick="prevSlide()">Previous</button>
+        <button class="nav-btn" onclick="nextSlide()">Next</button>
+    </div>
+
+    <script>
+        let currentSlide = 0;
+        const slides = document.querySelectorAll('.slide');
+        const progress = document.getElementById('progress');
+
+        function updateSlide() {
+            slides.forEach((slide, index) => {
+                slide.classList.remove('active', 'prev');
+                if (index === currentSlide) {
+                    slide.classList.add('active');
+                } else if (index < currentSlide) {
+                    slide.classList.add('prev');
+                }
+            });
+            progress.style.width = ((currentSlide + 1) / slides.length) * 100 + '%';
+        }
+
+        function nextSlide() {
+            if (currentSlide < slides.length - 1) {
+                currentSlide++;
+                updateSlide();
+            }
+        }
+
+        function prevSlide() {
+            if (currentSlide > 0) {
+                currentSlide--;
+                updateSlide();
+            }
+        }
+
+        // Keyboard Navigation
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowRight' || e.key === ' ') nextSlide();
+            if (e.key === 'ArrowLeft') prevSlide();
+        });
+
+        // Initialize
+        updateSlide();
+    </script>
+</body>
+</html>
